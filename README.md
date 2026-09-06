@@ -67,8 +67,9 @@ flowchart LR
 
 1. **Validate.** Empty, oversized, non-English, suspicious, or placeholder-containing input
    is handed to a person with the reason stated. sitr never crashes and never guesses.
-2. **Detect.** Emirates ID numbers, UAE mobile numbers and email addresses by pattern;
-   personal names with a small statistical model that installs as an ordinary dependency.
+2. **Detect.** Emirates ID numbers, phone numbers (UAE mobile and landline, international)
+   and email addresses by pattern, Arabic-Indic digits included; personal names with a small
+   statistical model that installs as an ordinary dependency.
 3. **Mask.** Names, emails and phones become `[NAME_1]`, `[EMAIL_1]`, `[PHONE_1]` with a
    mapping held in memory for this request only. Emirates IDs become `[EID_MASKED]` and
    are never stored, mapped or restored.
@@ -264,11 +265,9 @@ docs/            SPEC.md, ARCHITECTURE.md, adr/
 
 Stated, not hidden:
 
-- Name detection is a small statistical model (`en_core_web_sm`). It misses lowercase or
-  uncommon names and can flag non-names; recall is uneven on compound names. When one name
-  in a message is missed and another caught, the draft greets the wrong person. Precision
-  is not measured.
-- Phone detection covers UAE mobile formats; landlines and foreign numbers are not detected.
+- Name detection is a small statistical model (`en_core_web_sm`), measured per category on a
+  labelled synthetic corpus (`uv run python tests/test_quality.py`); CI fails if the numbers
+  drop. Lowercase names are its main gap.
 - Emirates ID detection is format-based, with no checksum.
 - The manipulation check is a keyword heuristic, not a classifier.
 - English only. The language check is a script heuristic.

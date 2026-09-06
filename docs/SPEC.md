@@ -9,7 +9,7 @@ boundary doing real work; the boundary is the product.
 
 **In scope (v0.1)**
 
-- Detection categories: Emirates ID numbers, UAE mobile numbers, email addresses,
+- Detection categories: Emirates ID numbers, phone numbers, email addresses,
   personal names (Latin script, English text).
 - Treatment: names, emails and phones become reversible placeholders restored in the
   reply. Emirates IDs are masked irreversibly, never restored, never leave the boundary.
@@ -34,7 +34,7 @@ boundary doing real work; the boundary is the product.
 
 | ID | Requirement |
 |----|-------------|
-| FR-1 | Detect Emirates IDs, UAE mobiles, emails and personal names in English text. |
+| FR-1 | Detect Emirates IDs, phone numbers (UAE mobile and landline, international), emails and personal names in English text, Arabic-Indic digits included. |
 | FR-2 | Replace names/emails/phones with numbered placeholders (`[NAME_1]`, `[EMAIL_1]`, `[PHONE_1]`); keep the mapping in memory for the current request only. |
 | FR-3 | Replace Emirates IDs with `[EID_MASKED]`; never store the original. |
 | FR-4 | Load destinations from `policy.yaml` (name, provider, region, approved, model). Refuse any destination that is undeclared or `approved: false`. |
@@ -93,12 +93,11 @@ Never cut: offline flow, T-2, T-3, honest refusal, README.
 
 ## 7. Known limitations
 
-- Name detection uses a small statistical model (`en_core_web_sm`). It misses lowercase
-  or uncommon names and can flag non-names; recall is uneven on compound names. When one
-  name in a message is missed and another caught, the draft greets the wrong person.
-  Precision is stated, not measured.
-- Phone detection covers UAE mobile spellings (`+971 5x`, `00971 5x`, `971 5x`, `+971 (0)5x`,
-  `05x`); landlines and foreign numbers are not detected.
+- Name detection uses a small statistical model (`en_core_web_sm`). Precision and recall
+  are measured per category on a labelled synthetic corpus (`tests/quality/corpus.yaml`,
+  reported by `tests/test_quality.py`) and gated in CI. Lowercase names are the main gap.
+- Phone detection covers UAE mobiles and landlines in the common spellings (`+971`, `00971`,
+  `971`, `(0)`, leading `0`) and international numbers written with `+` or `00`.
 - Emirates ID detection is format-based (`784-YYYY-NNNNNNN-N`, separators optional); no
   checksum validation.
 - Manipulation detection is a keyword heuristic, not a classifier.

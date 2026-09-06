@@ -21,10 +21,20 @@ def missing_items(text: str, rt: RequestType) -> list[str]:
     return [item for item, cues in rt.required.items() if not any(rx.search(text) for rx in cues)]
 
 
+def requester(text: str, config: Config) -> str | None:
+    """The placeholder of whoever wrote the message, found by a self-introduction or sign-off
+    cue. Config order is priority. A name that only appears mid-message is never the writer."""
+    for rx in config.requester_cues:
+        if m := rx.search(text):
+            return m.group("name")
+    return None
+
+
 def draft(text: str, rt: RequestType, missing: list[str], config: Config) -> str:
     d = config.drafts
-    # The model only ever sees placeholders; the greeting is restored to a real name later.
-    greeting = d["greeting_named"] if "[NAME_1]" in text else d["greeting_anonymous"]
+    # Placeholders only here; the boundary restores the greeting to a real name later.
+    who = requester(text, config)
+    greeting = d["greeting_named"].format(name=who) if who else d["greeting_anonymous"]
     if missing:
         items = ", ".join(item.replace("_", " ") for item in missing)
         body = d["body_missing"].format(label=rt.label, items=items)

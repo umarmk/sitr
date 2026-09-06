@@ -28,7 +28,9 @@ from sitr.model import (
 )
 from sitr.refusal import Refusal
 
-_ARABIC = re.compile(r"[\u0600-\u06FF]")  # Arabic script block
+# Arabic letters and marks. The two digit ranges are left out: detect() reads Arabic-Indic
+# digits, so an English message with an ID typed on an Arabic keyboard is still handled.
+_ARABIC = re.compile(r"[\u0600-\u065F\u066A-\u06EF\u06FA-\u06FF]")
 MODES = ("offline", "ai")
 
 

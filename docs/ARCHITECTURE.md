@@ -36,7 +36,7 @@ model ID, temperature, attribution headers).
 |--------|----------------|
 | `sitr/config.py` | Load and validate `policy.yaml` and `config.yaml` into dataclasses. |
 | `sitr/refusal.py` | `Refusal(reason, detail)`: the one exception any stage raises to hand a request to a person. Reasons are the closed set in SPEC §4; details are static text. |
-| `sitr/detect.py` | Detectors: regex for EID, UAE mobile, email; spaCy `PERSON` for names. One `detect(text) -> list[Span]` entry point used by masking and both re-checks. |
+| `sitr/detect.py` | Detectors: regex for EID, phone, email; spaCy `PERSON` for names. One `detect(text) -> list[Span]` entry point used by masking and both re-checks. |
 | `sitr/mask.py` | Replace spans with placeholders; build per-request mapping; `restore(text, mapping)` restores known placeholders only. |
 | `sitr/policy.py` | Resolve a destination by name; refuse undeclared or unapproved. |
 | `sitr/audit.py` | Build the audit record and emit it as one JSON line through `logging`. |

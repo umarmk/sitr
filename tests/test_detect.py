@@ -1,4 +1,4 @@
-"""Detector coverage per category, overlap handling, and stated non-coverage."""
+"""Detector coverage per category, overlap handling, and deliberate non-matches."""
 
 import pytest
 
@@ -7,6 +7,10 @@ from sitr.detect import EID, EMAIL, NAME, PHONE, detect
 
 def found(text: str) -> list[tuple[str, str]]:
     return [(s.category, s.text) for s in detect(text)]
+
+
+def arabic_indic(s: str) -> str:
+    return "".join(chr(0x0660 + int(c)) if c.isdigit() else c for c in s)
 
 
 @pytest.mark.parametrize("eid", ["784-1990-1234567-1", "784199012345671", "784 1990 1234567 1"])
@@ -29,6 +33,21 @@ def test_emirates_id_formats(eid: str) -> None:
 )
 def test_uae_mobile_formats(phone: str) -> None:
     assert (PHONE, phone) in found(f"Call me on {phone} please")
+
+
+def test_possessive_is_not_part_of_the_name() -> None:
+    assert found("Laura Chen's ID is ready and Yousef Ibrahim's is not") == [
+        (NAME, "Laura Chen"),
+        (NAME, "Yousef Ibrahim"),
+    ]
+
+
+def test_eid_glued_to_a_name_stays_its_own_span() -> None:
+    """spaCy merges the two; the EID must never end up inside a reversible NAME placeholder."""
+    assert found("Leave for Mohammed bin Rashid 784199012345671 please") == [
+        (NAME, "Mohammed bin Rashid"),
+        (EID, "784199012345671"),
+    ]
 
 
 def test_sentence_initial_noun_is_not_a_name() -> None:
@@ -61,5 +80,42 @@ def test_spans_are_ordered_and_non_overlapping() -> None:
     assert all(a.end <= b.start for a, b in zip(spans, spans[1:], strict=False))
 
 
-def test_landline_is_a_stated_gap() -> None:
-    assert detect("Office line 04 123 4567") == []
+@pytest.mark.parametrize(
+    "phone", ["04 123 4567", "+971 2 444 5555", "06 555 1212", "+971 4 3456789", "02-666-7788"]
+)
+def test_uae_landline_formats(phone: str) -> None:
+    assert (PHONE, phone) in found(f"Office line {phone} please")
+
+
+@pytest.mark.parametrize(
+    "phone",
+    [
+        "+44 20 7946 0958",
+        "+1 212 555 0199",
+        "+91 98765 43210",
+        "0091 98765 43210",
+        "+1 (212) 555-0199",
+        "+44 (0)20 7946 0958",
+        "+971 (4) 123 4567",
+    ],
+)
+def test_international_formats(phone: str) -> None:
+    assert (PHONE, phone) in found(f"Abroad, call {phone} instead")
+
+
+def test_arabic_indic_digits_are_read_and_the_original_text_is_kept() -> None:
+    eid, phone = arabic_indic("784-1990-1234567-1"), arabic_indic("050 123 4567")
+    assert found(f"ID {eid}, mobile {phone}") == [(EID, eid), (PHONE, phone)]
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Ticket INC0012345 is still open",
+        "Meeting room 04-12 is booked from 09:30 until 11:00",
+        "PO number 7841990123 was raised",
+        "Invoice 2026-0912 for AED 15,000",
+    ],
+)
+def test_reference_numbers_dates_and_times_are_not_phones(text: str) -> None:
+    assert detect(text) == []
