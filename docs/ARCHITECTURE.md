@@ -109,6 +109,11 @@ unavailable and the UI says so. Never echoed anywhere.
 - **Leakage paths considered:** logs (structured audit only, tested), exceptions (never
   include text), model request (outgoing re-check), UI (localhost, no secrets), audit
   record (categories and counts only), restored reply (EID re-check).
+- **What the re-check does and does not guarantee.** Masking and the outgoing re-check
+  share `detect()`. The re-check therefore proves that masking *applied* everything the
+  detectors found; it cannot find a format the detectors do not know. Detector coverage
+  is a stated limitation (SPEC §7) and is tested per format, not compensated for at
+  runtime.
 - **Secrets:** environment only, server side only; no key field in the UI; `.env`
   gitignored; `/api/capabilities` returns booleans, never values.
 - **Network surface:** `127.0.0.1` by default; `--host` must be passed explicitly to

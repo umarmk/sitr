@@ -12,12 +12,23 @@ network and no accounts.
 
 ## Quick start
 
-Requires [uv](https://docs.astral.sh/uv/). Python 3.12+ is fetched automatically if missing.
+With [uv](https://docs.astral.sh/uv/) (recommended; Python 3.12+ is fetched automatically if missing):
 
 ```bash
 uv sync
 uv run pytest
 ```
+
+Without uv, on an existing Python 3.12+:
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e . pytest ruff
+pytest
+```
+
+Either way the name-detection model is installed as an ordinary dependency; there is no
+separate download step.
 
 Run commands (`sitr run`, `sitr serve`) land in the next PRs; see the docs below for the
 design.

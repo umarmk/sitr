@@ -76,7 +76,7 @@ Each is handed to a person with the reason stated and recorded in the audit reco
 |----|------|
 | T-1 | Offline end-to-end: synthetic request with all four PII categories → classified, drafted, names restored, EID masked. |
 | T-2 | No PII in logs: capture all logging output for T-1 and assert none of the synthetic values appear. Same assertion on the audit record. |
-| T-3 | Outgoing re-check: inject a detector gap (monkeypatch) so a phone survives masking → request refused with `outgoing_recheck_failed`. |
+| T-3 | Outgoing re-check: inject a *masking* fault (monkeypatch `Masker.apply` to leave phone spans in place) so a phone survives masking → request refused with `outgoing_recheck_failed`, nothing sent. The re-check shares `detect()` with masking, so it guards against masking faults, not detector blind spots (see §7). |
 | T-4 | One test per refusal condition in §4. |
 | T-5 | Mask → restore round-trip is lossless for names, emails, phones. |
 | T-6 | Emirates ID is absent from masked text, restored reply, mapping and audit record. |
@@ -101,3 +101,7 @@ Never cut: offline flow, T-2, T-3, honest refusal, README.
   checksum validation.
 - Manipulation detection is a keyword heuristic, not a classifier.
 - English text only; the language check is a script heuristic, not language identification.
+- The outgoing re-check reuses the same detectors as masking. It catches masking faults
+  (a replacement bug, a skipped span, a name spaCy only recognises on a second pass), not
+  a format the detectors do not know. Unknown formats are the limitations above; the
+  re-check cannot compensate for them.
