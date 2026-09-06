@@ -53,10 +53,11 @@ request_types:
 
 # Who wrote the message. The first cue to match names the placeholder the draft greets; a
 # name that only appears mid-message (a manager, a colleague) is never greeted. Cues run on
-# masked text, so each captures a placeholder in a group called "name".
+# masked text, so each captures a placeholder in a group called "name". Sign-off cues are
+# anchored to the end of a line so "Thank you [NAME_1] for approving" is not a signature.
 requester_cues:
   - '\b(?:my name is|this is|i am|i''m)\s+(?P<name>\[NAME_\d+\])'
-  - '\b(?:regards|thanks|thank you|cheers|best|sincerely)[,.]?\s+(?P<name>\[NAME_\d+\])'
+  - '(?m)\b(?:regards|thanks|thank you|cheers|best|sincerely)[,.]?\s+(?P<name>\[NAME_\d+\])\s*[.!]?\s*$'
   - '(?P<name>\[NAME_\d+\])\s*[.!]?\s*$'   # a name on its own at the very end is a signature
 
 # Sentences the rule-based assistant writes. {name}, {label} and {items} are filled in.

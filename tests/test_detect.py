@@ -88,7 +88,16 @@ def test_uae_landline_formats(phone: str) -> None:
 
 
 @pytest.mark.parametrize(
-    "phone", ["+44 20 7946 0958", "+1 212 555 0199", "+91 98765 43210", "0091 98765 43210"]
+    "phone",
+    [
+        "+44 20 7946 0958",
+        "+1 212 555 0199",
+        "+91 98765 43210",
+        "0091 98765 43210",
+        "+1 (212) 555-0199",
+        "+44 (0)20 7946 0958",
+        "+971 (4) 123 4567",
+    ],
 )
 def test_international_formats(phone: str) -> None:
     assert (PHONE, phone) in found(f"Abroad, call {phone} instead")

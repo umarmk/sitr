@@ -109,6 +109,8 @@
   expected: [["PHONE", "+44 20 7946 0958"]]
 - text: "New York desk: +1 212 555 0199."
   expected: [["PHONE", "+1 212 555 0199"]]
+- text: "Toll-free support is +1 (800) 555-0142, the direct line +1 (212) 555-0199."
+  expected: [["PHONE", "+1 (800) 555-0142"], ["PHONE", "+1 (212) 555-0199"]]
 - text: "My Indian number is +91 98765 43210 while I am on leave."
   expected: [["PHONE", "+91 98765 43210"]]
 - text: "Dial 0091 98765 43210 for the Bangalore office."

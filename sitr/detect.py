@@ -26,8 +26,9 @@ _PATTERNS = {
         r"(?<!\d)(?:"
         # UAE mobile (5x + 7 digits) or landline (area code 2/3/4/6/7/9 + 7 digits)
         rf"(?:{_UAE}|0)(?:5\d|[2-4679])[\s-]?\d{{3}}[\s-]?\d{{4}}"
-        # any other international number: + or 00, country code, then 7-12 digits
-        r"|(?:\+|00)\d{1,3}[\s-]?\d(?:[\s-]?\d){6,11}"
+        # any other international number: + or 00, country code, an optional parenthesised
+        # area code or trunk zero, then 7-12 digits
+        r"|(?:\+|00)\d{1,3}[\s-]?(?:\(\d{1,4}\)[\s-]?)?\d(?:[\s-]?\d){6,11}"
         r")(?!\d)"
     ),
     EMAIL: re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"),

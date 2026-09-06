@@ -150,6 +150,19 @@ def test_draft_greets_the_writer_not_the_first_name_found() -> None:
     assert r.counts == {"NAME": 2} and r.draft_reply.startswith("Dear Omar Hassan,")
 
 
+def test_thank_you_mid_sentence_is_not_a_signature() -> None:
+    r = process(
+        "Thank you Priya Nair for approving my annual leave from 3 to 14 March. "
+        "Regards, Omar Hassan"
+    )
+    assert r.draft_reply.startswith("Dear Omar Hassan,")
+
+
+def test_signature_followed_by_a_phone_line_still_counts() -> None:
+    r = process("Annual leave from 3 to 14 March please.\nRegards, Omar Hassan\n050 123 4567")
+    assert r.counts == {"NAME": 1, "PHONE": 1} and r.draft_reply.startswith("Dear Omar Hassan,")
+
+
 def test_no_self_introduction_means_an_anonymous_greeting() -> None:
     r = process("Priya Nair approved my annual leave from 3 to 14 March.")
     assert r.counts == {"NAME": 1} and r.draft_reply.startswith("Hello,")
