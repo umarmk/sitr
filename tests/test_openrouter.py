@@ -103,7 +103,7 @@ def test_only_placeholders_leave_the_boundary(
     user_message = sent["body"]["messages"][1]["content"]
     assert all(value not in json.dumps(sent["body"]) for value in PII)
     assert "[NAME_1]" in user_message and "[EID_MASKED]" in user_message
-    assert sent["body"]["model"] == "openai/gpt-4o-mini"
+    assert sent["body"]["model"] == make_model(fake).destination.model  # from policy.yaml
     assert sent["headers"]["Authorization"] == "Bearer test-key"
 
     left_the_boundary = caplog.text + json.dumps(r.audit) + r.outgoing_text
