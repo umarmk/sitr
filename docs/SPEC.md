@@ -43,7 +43,7 @@ boundary doing real work; the boundary is the product.
 | FR-7 | Validate model output: JSON with `request_type` in the closed set, `missing_items`, `draft_reply`. Anything else is handed to a person. |
 | FR-8 | Restore only placeholders present in this request's mapping. Unknown placeholders stay literal and the result is flagged `needs_review`. |
 | FR-9 | Re-check the restored reply for Emirates IDs before display. |
-| FR-10 | Emit one audit record per request: id, timestamp, mode, destination (provider/region/approved), category counts, request type, decision, refusal reason. |
+| FR-10 | Emit one audit record per request: id, timestamp, mode, destination (provider/region/approved), category counts, request type, decision, refusal reason, needs-review flag (an unknown placeholder was left literal in the reply). |
 | FR-11 | Every result shows which destination handled it, in which region, and whether it is approved. |
 | FR-12 | Offer example requests as templates; always allow free text. |
 | FR-13 | The `ai` mode is offered only when the machine can run it (key present); otherwise it is shown disabled with the reason. |

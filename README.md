@@ -83,11 +83,11 @@ flowchart LR
    else stays literal and the result is flagged for review.
 9. **Re-check the reply** for Emirates IDs before it is shown.
 10. **Audit.** One JSON line per request: categories and counts, destination, decision,
-    reason. Never the text, never the mapping.
+    reason, and whether the reply needs review. Never the text, never the mapping.
 
 | Never leaves the boundary | Leaves only in AI mode | In the audit record |
 |---|---|---|
-| Raw text, the placeholder mapping, Emirates ID values | Of the message, only the masked text, to the one approved destination in `policy.yaml` (with the ordinary request metadata: key, prompt, model ID, temperature) | Counts per category, destination (provider, region, approved), request type, decision, reason |
+| Raw text, the placeholder mapping, Emirates ID values | Of the message, only the masked text, to the one approved destination in `policy.yaml` (with the ordinary request metadata: key, prompt, model ID, temperature) | Counts per category, destination (provider, region, approved), request type, decision, reason, needs-review flag |
 
 ## Quick start
 
