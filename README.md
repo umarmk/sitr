@@ -46,6 +46,10 @@ anyone's personal data.
 no separate model download. AI mode is optional; it shows that the same boundary holds
 when a real model is behind it, and nobody has to run it to evaluate the project.
 
+sitr is one technical control that supports data minimisation, designed with the UAE
+Personal Data Protection Law in mind. It is not a compliance product and makes no compliance
+claims. All sample data is synthetic; no real people, ever.
+
 ## How it works
 
 ```mermaid
@@ -78,7 +82,8 @@ flowchart LR
 5. **Re-check.** Every detector runs again on the outgoing text. If anything is found, the
    request is refused and nothing is sent.
 6. **Answer.** Offline, a rule-based assistant classifies the request, lists what is
-   missing and drafts a reply. In AI mode a model does the same from the masked text.
+   missing and drafts a reply addressed to whoever wrote in. In AI mode a model does the
+   same from the masked text.
 7. **Validate the answer.** It must be well-formed and name a known request type.
 8. **Restore.** Only placeholders from this request's own mapping are put back. Anything
    else stays literal and the result is flagged for review.
@@ -89,6 +94,23 @@ flowchart LR
 | Never leaves the boundary | Leaves only in AI mode | In the audit record |
 |---|---|---|
 | Raw text, the placeholder mapping, Emirates ID values | Of the message, only the masked text, to the one approved destination in `policy.yaml` (with the ordinary request metadata: key, prompt, model ID, temperature) | Counts per category, destination (provider, region, approved), request type, decision, reason, needs-review flag |
+
+## Why it holds
+
+- **You cannot leak what you never saw.** Employee text is data, never instructions. Offline
+  there is nothing to hijack. In AI mode the model holds placeholders only, its answer is
+  checked against a closed set of request types, and placeholders are restored only from the
+  request's own mapping. A successful manipulation has nothing to take.
+- **Fails closed.** Any stage can refuse. Every refusal is one of nine named reasons, handed
+  to a person, and audited. No error path sends text anyway.
+- **Security in code, policy in configuration.** Detectors, placeholder format and output
+  validation are code, and tested. Where text may go and what the assistant says are YAML
+  an operator changes without a deploy.
+- **Nothing retained.** The mapping lives in memory for one request. There is no store to
+  secure and no retention policy to write.
+- **Tested, not promised.** "No personal data in logs" is an assertion over captured log
+  output, and detection precision and recall are numbers gated in CI, both run on every
+  pull request.
 
 ## Quick start
 
@@ -142,7 +164,7 @@ person who will review and send it; the model never saw the name.
 
 `sitr run` also accepts free text as an argument or on stdin, `--json` for the full
 result, and exits `0` when a draft was produced, `1` when the request was handed to a
-person, `2` on a usage error.
+person, `2` on a usage or configuration error.
 
 ## The web UI
 
@@ -198,9 +220,10 @@ security control.
   model ID. Undeclared destinations are refused. Offline mode never reads this file.
 - **`config.yaml`** — how the assistant behaves: the input cap, model timeout and
   temperature, the system prompt, the four request types with their keywords and
-  required-item cues, the sentences the offline assistant writes, the manipulation
-  patterns, and the example templates. Every keyword and cue is a case-insensitive
-  regular expression.
+  required-item cues, the cues that identify who wrote the message, the sentences the
+  offline assistant writes, the manipulation patterns, and the example templates. Every
+  keyword and cue is a case-insensitive regular expression, and the file is validated in
+  full at load.
 
 `OPENROUTER_API_KEY` is the only environment variable. See `.env.example`.
 
@@ -221,25 +244,43 @@ Each refusal is handed to a person with the reason stated, and still produces an
 
 ## Tests and CI
 
+144 tests, no network, under ten seconds.
+
 ```bash
 uv run pytest -q
 uv run ruff check . && uv run ruff format --check .
+uv run python tests/test_quality.py   # detection precision and recall per category
 ```
 
-The suite runs without a network connection and covers, among other things:
+The suite asserts:
 
-- the offline flow end to end, with names restored and the Emirates ID masked;
-- **no personal data in logs or audit records**, asserted over captured log output;
+- **no personal data in logs or audit records**, over captured log output;
 - the outgoing re-check refusing when masking is deliberately broken;
-- every refusal reason;
-- a lossless mask-and-restore round trip, and the Emirates ID never being restorable;
-- the policy refusing undeclared and unapproved destinations;
+- the Emirates ID never restorable, even when the name model glues it onto a name;
+- every refusal reason, and no path that raises instead of refusing: malformed
+  configuration, malformed model output, text that is not valid Unicode;
+- the policy refusing undeclared and unapproved destinations, and a hostile destination
+  name never reaching the log;
 - AI mode against an in-process fake gateway: only placeholders leave, the key never
   appears in any output, and HTTP, JSON and closed-set failures are refused, not raised;
-- the web endpoints and the CLI.
+- the web endpoints and the CLI;
+- detection quality on a labelled synthetic corpus of 100 desk messages, gated per
+  category:
 
-CI runs the same commands on Python 3.12 and 3.14 for every pull request. `main` is
-PR-only.
+| Category | Values | Precision | Recall |
+|---|---|---|---|
+| Names | 56 | 93.0% | 94.6% |
+| Phone numbers | 33 | 100% | 100% |
+| Email addresses | 14 | 100% | 100% |
+| Emirates IDs | 9 | 100% | 100% |
+
+Measured on 2026-09-06 with the pinned `en_core_web_sm` 3.8.0. The name misses are the
+deliberately lowercase entries; the false positives are over-masking of a system, a bank, a
+city and a road, the safe direction. CI fails if any category drops below its threshold.
+
+Built as a series of small pull requests against a PR-only `main`, each reviewed before
+merge, with seven decision records in `docs/adr/`. CI runs the same commands on Python 3.12
+and 3.14.
 
 ## Project layout
 
@@ -250,44 +291,68 @@ sitr/
   mask.py        placeholders, per-request mapping, restore()
   policy.py      destination resolution and refusal
   model.py       Model protocol, RuleBasedModel (offline), OpenRouterModel (AI)
-  assistant.py   keyword classification, missing items, drafts (all from config)
+  assistant.py   keyword classification, missing items, requester, drafts (all from config)
   audit.py       one JSON line per request via logging
-  config.py      policy.yaml / config.yaml loaders
+  config.py      policy.yaml / config.yaml loaders and validation
   refusal.py     the one exception that hands a request to a person
   cli.py         sitr run | templates | serve
   web.py         FastAPI app; static/index.html is the page
 policy.yaml, config.yaml
-tests/           pytest; fake gateway for AI mode
+tests/           pytest; fake gateway for AI mode; quality/ holds the labelled corpus
 docs/            SPEC.md, ARCHITECTURE.md, adr/
 ```
 
-## Limitations
+## Scope
 
-Stated, not hidden:
+The first version covers what an employee-services desk in the UAE actually sees, and says
+so precisely:
 
-- Name detection is a small statistical model (`en_core_web_sm`), measured per category on a
-  labelled synthetic corpus (`uv run python tests/test_quality.py`); CI fails if the numbers
-  drop. Lowercase names are its main gap.
-- Emirates ID detection is format-based, with no checksum.
-- The manipulation check is a keyword heuristic, not a classifier.
-- English only. The language check is a script heuristic.
-- The outgoing re-check reuses the same detectors as masking. It catches masking faults,
-  not formats the detectors do not know.
-- The placeholder mapping lives in process memory for one request. There is no retention
-  policy because there is nothing retained.
+- **Four categories:** personal names, Emirates ID numbers, phone numbers (UAE mobile and
+  landline, international) and email addresses, in Western or Arabic-Indic digits. Passport
+  numbers, IBANs and addresses are the next categories, one pattern each behind `detect()`.
+- **English messages.** Arabic-script text is handed to a person rather than guessed at.
+- **Measured, gated detection.** The numbers above are the contract; the remaining name
+  misses are lowercase names, which is one reason a person reviews every draft.
 
-## With more time
+Two things are decisions, not gaps:
 
-A recorded mode that replays real model responses without keys; Arabic-script names and
-Arabic-Indic digits; a placeholder store behind a secrets manager with retention rules; a
-measured detection-quality set; per-business-unit policy packs; rate and spend limits for
-a hosted instance.
+- **Emirates IDs are matched by format, without a checksum.** A checksum would only teach
+  sitr to ignore a mistyped ID, and a mistyped ID is still personal data. Over-detection is
+  the safe direction, and a format match already goes irreversible.
+- **The manipulation check is triage, not the control.** The model only ever holds
+  placeholders, so a successful injection has nothing to take. The keyword check saves a
+  person's time; the architecture keeps the data.
+
+## If I had more time
+
+sitr today guards one prompt and one reply for one desk. The same boundary, unchanged in
+principle, is what an organisation needs on every hop between its people and its models.
+
+1. **Every hop, both directions.** An agent makes many calls: model turns, tool calls, tool
+   results, retrieved documents. Run sitr as a gateway on each of them, with per-tool and
+   per-destination policy, streaming support, and one session-scoped mapping so placeholders
+   stay consistent across turns and are restored only at the human edge.
+2. **A real agent behind AI mode.** The `Model` Protocol already isolates the model. Replace
+   the single JSON call with an agent that reads the request, looks up the employee record by
+   placeholder-safe keys, fills the certificate or letter template, and queues it for
+   approval, working on placeholders throughout. Restoration happens once, on the approval
+   screen. A person remains the last step.
+3. **Detection with numbers attached.** Grow the quality corpus into a benchmark: more
+   categories (passport numbers, IBANs, dates of birth, addresses, salaries), Arabic-script
+   names, a transformer model behind the same `detect()` with the small model kept as the
+   offline default, and the recall gate already in CI keeping quality from dropping silently.
+4. **Compliance evidence, not compliance claims.** Signed, tamper-evident audit chains
+   exported to a SIEM; per-tenant policy packs mapping destinations to regions and legal
+   bases; data-subject request support (nothing is retained, and the audit proves it);
+   records-of-processing and DPIA inputs generated from the policy. The architecture already
+   gives a UAE PDPL programme its three hard parts: minimisation by default, cross-border
+   control by policy, and a record of every decision.
+5. **Operate it.** Keys in a secrets manager, per-user rate and spend limits, multi-tenancy,
+   a placeholder vault with retention rules for workflows that must span sessions, and a
+   proxy mode so any existing application gets the boundary by changing one base URL.
 
 ## Documentation
 
 - [Specification](docs/SPEC.md) — scope, requirements, refusal conditions, acceptance tests
 - [Architecture](docs/ARCHITECTURE.md) — data flow, modules, configuration, trust boundaries
 - [Decision records](docs/adr/) — why each significant choice was made
-
-sitr is not a compliance product and makes no compliance claims. It is one technical
-control that supports data minimisation. All sample data is synthetic; no real people, ever.

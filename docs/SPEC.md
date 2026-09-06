@@ -9,8 +9,11 @@ boundary doing real work; the boundary is the product.
 
 **In scope (v0.1)**
 
-- Detection categories: Emirates ID numbers, phone numbers, email addresses,
-  personal names (Latin script, English text).
+- Detection categories: Emirates ID numbers, phone numbers (UAE mobile and landline,
+  international), email addresses, personal names (Latin script, English text). Western
+  and Arabic-Indic digits.
+- Measured detection quality: a labelled synthetic corpus with per-category precision and
+  recall thresholds enforced in CI (`tests/test_quality.py`).
 - Treatment: names, emails and phones become reversible placeholders restored in the
   reply. Emirates IDs are masked irreversibly, never restored, never leave the boundary.
 - Destination policy as configuration (`policy.yaml`). Anything undeclared is refused.
@@ -24,10 +27,10 @@ boundary doing real work; the boundary is the product.
 **Out of scope (stated, not silent)**
 
 - Hosted multi-user deployment (access codes, rate limits, spend caps).
-- Arabic-script names, Arabic-Indic digits, any other PII category (passport numbers,
-  IBANs, postal addresses, dates of birth).
-- Recorded/replay mode, secrets-manager-backed placeholder store, measured detection
-  quality set, chat front end, per-business-unit policy packs.
+- Arabic-script names, any other PII category (passport numbers, IBANs, postal addresses,
+  dates of birth).
+- Recorded/replay mode, secrets-manager-backed placeholder store, chat front end,
+  per-business-unit policy packs.
 - Sending anything on anyone's behalf. sitr drafts only.
 
 ## 2. Functional requirements
@@ -91,16 +94,19 @@ Each is handed to a person with the reason stated and recorded in the audit reco
 
 Never cut: offline flow, T-2, T-3, honest refusal, README.
 
-## 7. Known limitations
+## 7. Scope boundaries and detection decisions
 
 - Name detection uses a small statistical model (`en_core_web_sm`). Precision and recall
   are measured per category on a labelled synthetic corpus (`tests/quality/corpus.yaml`,
   reported by `tests/test_quality.py`) and gated in CI. Lowercase names are the main gap.
 - Phone detection covers UAE mobiles and landlines in the common spellings (`+971`, `00971`,
   `971`, `(0)`, leading `0`) and international numbers written with `+` or `00`.
-- Emirates ID detection is format-based (`784-YYYY-NNNNNNN-N`, separators optional); no
-  checksum validation.
-- Manipulation detection is a keyword heuristic, not a classifier.
+- Emirates ID detection is format-based (`784-YYYY-NNNNNNN-N`, separators optional) with no
+  checksum, by decision: a checksum would only let sitr ignore a mistyped ID, and a mistyped
+  ID is still personal data. Over-detection is the safe direction.
+- Manipulation detection is a keyword heuristic used as triage, not as the control. The
+  control is architectural: the model only ever holds placeholders (see ARCHITECTURE,
+  trust boundaries).
 - English text only; the language check is a script heuristic, not language identification.
 - The outgoing re-check reuses the same detectors as masking. It catches masking faults
   (a replacement bug, a skipped span, a name spaCy only recognises on a second pass), not
