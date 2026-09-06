@@ -73,8 +73,10 @@ def _mutated_config(tmp_path: Path, mutate: Callable[[dict], object]) -> Path:
         lambda d: d["drafts"].pop("sign_off"),
         lambda d: d["drafts"].__setitem__("body_missing", "please send {stuff}"),
         lambda d: d["drafts"].__setitem__("body_complete", "Done: {items}"),
+        lambda d: d["drafts"].__setitem__("greeting_named", "Dear {who},"),
         lambda d: d.__setitem__("request_types", {}),
         lambda d: d["manipulation_patterns"].append("("),
+        lambda d: d.__setitem__("requester_cues", [r"this is (\[NAME_\d+\])"]),
     ],
     ids=[
         "cap-not-a-number",
@@ -83,8 +85,10 @@ def _mutated_config(tmp_path: Path, mutate: Callable[[dict], object]) -> Path:
         "draft-missing",
         "draft-unknown-field",
         "draft-field-from-other-call-site",
+        "greeting-unknown-field",
         "no-request-types",
         "bad-regex",
+        "requester-cue-without-name-group",
     ],
 )
 def test_malformed_config_fails_at_load_not_mid_request(

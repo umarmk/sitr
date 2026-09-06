@@ -142,6 +142,35 @@ def test_unknown_placeholder_stays_literal_and_flags_review() -> None:
     assert r.draft_reply == f"Dear {NAME}, cc [EMAIL_7]"
 
 
+def test_draft_greets_the_writer_not_the_first_name_found() -> None:
+    r = process(
+        "Dear HR, my manager Priya Nair approved my annual leave from 3 to 14 March. "
+        "Thanks, Omar Hassan"
+    )
+    assert r.counts == {"NAME": 2} and r.draft_reply.startswith("Dear Omar Hassan,")
+
+
+def test_no_self_introduction_means_an_anonymous_greeting() -> None:
+    r = process("Priya Nair approved my annual leave from 3 to 14 March.")
+    assert r.counts == {"NAME": 1} and r.draft_reply.startswith("Hello,")
+
+
+def test_eid_next_to_a_name_is_never_restorable() -> None:
+    r = process(
+        f"Leave for Mohammed bin Rashid {EID} and Ahmed Khan from 3 March. Thanks, Ahmed Khan"
+    )
+    assert r.counts == {"NAME": 3, "EID": 1}
+    assert EID not in r.outgoing_text and EID not in r.draft_reply
+    assert "Mohammed bin Rashid" not in r.outgoing_text
+
+
+def test_arabic_indic_digits_are_masked_not_refused() -> None:
+    eid = "".join(chr(0x0660 + int(c)) if c.isdigit() else c for c in EID)
+    r = process(f"Salary certificate for a loan addressed to my bank, Emirates ID {eid}.")
+    assert (r.decision, r.counts) == ("drafted", {"EID": 1})
+    assert eid not in r.outgoing_text and "[EID_MASKED]" in r.outgoing_text
+
+
 def test_name_next_to_a_number_is_caught_on_the_second_pass() -> None:
     """With the pinned model, spaCy misses this name until the number beside it is masked."""
     r = process("Dear HR this is Ravi Kumar 0509876543 i need sick leave tomorrow")

@@ -1,0 +1,209 @@
+# Synthetic labelled messages for the detection quality gate (tests/test_quality.py).
+# All people, numbers and addresses are fictional. `expected` lists every personal-data
+# value that must be masked, with its category; an empty list is a deliberate negative.
+
+- text: "Hello, my name is Sarah Mitchell and I work in the finance team. I need a salary certificate addressed to Emirates NBD for a car loan."
+  expected: [["NAME", "Sarah Mitchell"]]
+- text: "Hi, this is Daniel Cooper from procurement. Could I get an NOC for a UK visa application? I travel from 12 November."
+  expected: [["NAME", "Daniel Cooper"]]
+- text: "Dear HR, this is Omar Hassan. I would like to request annual leave from 3 to 14 March. My manager Priya Nair has already agreed."
+  expected: [["NAME", "Omar Hassan"], ["NAME", "Priya Nair"]]
+- text: "Hello IT, I need access to SharePoint and the VPN for my new role. Regards, Ahmed Khan"
+  expected: [["NAME", "Ahmed Khan"]]
+- text: "Hi, I need a salary certificate please. Thanks, John Smith"
+  expected: [["NAME", "John Smith"]]
+- text: "Good morning, Fatima Al Zahra here from the legal department. I need an NOC for a driving licence."
+  expected: [["NAME", "Fatima Al Zahra"]]
+- text: "Please arrange a laptop for our new joiner Abdulrahman Al Mansoori starting on 1 October."
+  expected: [["NAME", "Abdulrahman Al Mansoori"]]
+- text: "Mohammed bin Rashid from facilities asked me to request VPN access for him."
+  expected: [["NAME", "Mohammed bin Rashid"]]
+- text: "I am Aisha Al Maktoum, employee in marketing. Kindly issue a salary letter for my mortgage application."
+  expected: [["NAME", "Aisha Al Maktoum"]]
+- text: "Sick leave tomorrow please, I have a doctor's note. Khalid Al Nuaimi"
+  expected: [["NAME", "Khalid Al Nuaimi"]]
+- text: "Mariam Al Suwaidi will cover my desk while I am on leave from 5 to 9 May."
+  expected: [["NAME", "Mariam Al Suwaidi"]]
+- text: "Kind regards, Noura Al Kaabi"
+  expected: [["NAME", "Noura Al Kaabi"]]
+- text: "Password reset for my account please. Saeed Al Marri, IT helpdesk ticket raised yesterday."
+  expected: [["NAME", "Saeed Al Marri"]]
+- text: "Hamad Al Shamsi and Layla Haddad both need Jira access for the new project."
+  expected: [["NAME", "Hamad Al Shamsi"], ["NAME", "Layla Haddad"]]
+- text: "Could you confirm whether Yousef Ibrahim's NOC has been signed?"
+  expected: [["NAME", "Yousef Ibrahim"]]
+- text: "Hi team, Priya Nair here. Annual leave from 20 to 24 April please."
+  expected: [["NAME", "Priya Nair"]]
+- text: "Dear HR this is Ravi Kumar 0509876543 i need sick leave tomorrow"
+  expected: [["NAME", "Ravi Kumar"], ["PHONE", "0509876543"]]
+- text: "Anjali Sharma requested a proof of income for a rental contract."
+  expected: [["NAME", "Anjali Sharma"]]
+- text: "Please add Rahul Mehta to the SAP finance role. Thanks, Deepak Pillai"
+  expected: [["NAME", "Rahul Mehta"], ["NAME", "Deepak Pillai"]]
+- text: "I need unpaid leave from 1 to 15 June. Sneha Iyer"
+  expected: [["NAME", "Sneha Iyer"]]
+- text: "Arjun Menon from the Abu Dhabi office needs his Office 365 account unlocked."
+  expected: [["NAME", "Arjun Menon"]]
+- text: "Farhan Siddiqui, maternity cover for Zainab Hussain, needs portal access until December."
+  expected: [["NAME", "Farhan Siddiqui"], ["NAME", "Zainab Hussain"]]
+- text: "Maria Santos would like a salary certificate for a visa, addressed to the Spanish embassy."
+  expected: [["NAME", "Maria Santos"]]
+- text: "Hi, Jose Reyes here. My laptop screen is broken, can I get a replacement?"
+  expected: [["NAME", "Jose Reyes"]]
+- text: "Angelica Cruz is joining the reception team on Monday and needs a badge."
+  expected: [["NAME", "Angelica Cruz"]]
+- text: "Wei Zhang asked for an NOC to attend a conference in Singapore next month."
+  expected: [["NAME", "Wei Zhang"]]
+- text: "Emergency leave today, family matter. Mei Lin"
+  expected: [["NAME", "Mei Lin"]]
+- text: "Hiroshi Tanaka needs GitHub access for the data platform repository."
+  expected: [["NAME", "Hiroshi Tanaka"]]
+- text: "Please issue an income certificate for Kwame Mensah for his bank."
+  expected: [["NAME", "Kwame Mensah"]]
+- text: "Amara Okafor, compassionate leave from 8 to 12 February."
+  expected: [["NAME", "Amara Okafor"]]
+- text: "hello my name is sarah mitchell and i need a salary certificate for a loan"
+  expected: [["NAME", "sarah mitchell"]]
+- text: "thanks, john smith"
+  expected: [["NAME", "john smith"]]
+- text: "Emily Watson (HR business partner) can approve this on my behalf."
+  expected: [["NAME", "Emily Watson"]]
+- text: "Michael Brown needs the VPN reset, he is travelling to London tomorrow."
+  expected: [["NAME", "Michael Brown"]]
+- text: "Laura Chen's Emirates ID is 784-1988-2233445-6, please update the record."
+  expected: [["NAME", "Laura Chen"], ["EID", "784-1988-2233445-6"]]
+- text: "Thanks, Sarah"
+  expected: [["NAME", "Sarah"]]
+- text: "Regards, Omar"
+  expected: [["NAME", "Omar"]]
+- text: "Best, Priya"
+  expected: [["NAME", "Priya"]]
+
+- text: "Please call me on 050 123 4567 if you need anything else."
+  expected: [["PHONE", "050 123 4567"]]
+- text: "My mobile is 0501234567."
+  expected: [["PHONE", "0501234567"]]
+- text: "Reach me at +971 50 123 4567 after 2pm."
+  expected: [["PHONE", "+971 50 123 4567"]]
+- text: "Contact number +971501234567"
+  expected: [["PHONE", "+971501234567"]]
+- text: "You can call 00971 55 987 6543 for the courier."
+  expected: [["PHONE", "00971 55 987 6543"]]
+- text: "My number is +971 (0)56 222 3344."
+  expected: [["PHONE", "+971 (0)56 222 3344"]]
+- text: "Call 971 52 111 2222 to confirm delivery."
+  expected: [["PHONE", "971 52 111 2222"]]
+- text: "WhatsApp me on 054-333-4444 please."
+  expected: [["PHONE", "054-333-4444"]]
+- text: "New SIM number: 058 765 4321, please update HR records."
+  expected: [["PHONE", "058 765 4321"]]
+- text: "The office landline is 04 123 4567, extension 210."
+  expected: [["PHONE", "04 123 4567"]]
+- text: "Abu Dhabi branch: +971 2 444 5555."
+  expected: [["PHONE", "+971 2 444 5555"]]
+- text: "Sharjah number 06 555 1212 goes to reception."
+  expected: [["PHONE", "06 555 1212"]]
+- text: "Dubai office +971 4 3456789."
+  expected: [["PHONE", "+971 4 3456789"]]
+- text: "London contact: +44 20 7946 0958."
+  expected: [["PHONE", "+44 20 7946 0958"]]
+- text: "New York desk: +1 212 555 0199."
+  expected: [["PHONE", "+1 212 555 0199"]]
+- text: "My Indian number is +91 98765 43210 while I am on leave."
+  expected: [["PHONE", "+91 98765 43210"]]
+- text: "Dial 0091 98765 43210 for the Bangalore office."
+  expected: [["PHONE", "0091 98765 43210"]]
+- text: "Riyadh contact +966 50 123 4567."
+  expected: [["PHONE", "+966 50 123 4567"]]
+- text: "Home number 02 666 7788 and mobile 055 444 3322."
+  expected: [["PHONE", "02 666 7788"], ["PHONE", "055 444 3322"]]
+
+- text: "Email sarah.mitchell@example.com if you need anything."
+  expected: [["EMAIL", "sarah.mitchell@example.com"]]
+- text: "Send the NOC to d.cooper@corp.example.ae please."
+  expected: [["EMAIL", "d.cooper@corp.example.ae"]]
+- text: "My personal address is omar_hassan99@example.org."
+  expected: [["EMAIL", "omar_hassan99@example.org"]]
+- text: "Use priya+hr@example.co.uk for HR matters."
+  expected: [["EMAIL", "priya+hr@example.co.uk"]]
+- text: "Old address AHMED.KHAN@EXAMPLE.COM no longer works."
+  expected: [["EMAIL", "AHMED.KHAN@EXAMPLE.COM"]]
+- text: "Write to john0501234567@example.com for the invoice."
+  expected: [["EMAIL", "john0501234567@example.com"]]
+- text: "cc fatima.alzahra@example.com and khalid.nuaimi@example.com on the reply."
+  expected: [["EMAIL", "fatima.alzahra@example.com"], ["EMAIL", "khalid.nuaimi@example.com"]]
+- text: "Contact: layla.haddad@mail.example.net or 056 111 2233."
+  expected: [["EMAIL", "layla.haddad@mail.example.net"], ["PHONE", "056 111 2233"]]
+
+- text: "My Emirates ID is 784-1990-1234567-1."
+  expected: [["EID", "784-1990-1234567-1"]]
+- text: "EID 784199012345671 attached for reference."
+  expected: [["EID", "784199012345671"]]
+- text: "Emirates ID number: 784 1985 7654321 0"
+  expected: [["EID", "784 1985 7654321 0"]]
+- text: "ID 784-2001-0000001-9 expires next month, need an NOC for renewal."
+  expected: [["EID", "784-2001-0000001-9"]]
+- text: "Emirates ID ٧٨٤-١٩٩٠-١٢٣٤٥٦٧-١ typed from my phone."
+  expected: [["EID", "٧٨٤-١٩٩٠-١٢٣٤٥٦٧-١"]]
+- text: "Call me on ٠٥٠ ١٢٣ ٤٥٦٧ please."
+  expected: [["PHONE", "٠٥٠ ١٢٣ ٤٥٦٧"]]
+
+- text: "Hello, my name is Sarah Mitchell and I work in the finance team. I need a salary certificate addressed to Emirates NBD for a car loan. My Emirates ID is 784-1990-1234567-1. Please call me on 050 123 4567 or email sarah.mitchell@example.com if you need anything else."
+  expected: [["NAME", "Sarah Mitchell"], ["EID", "784-1990-1234567-1"], ["PHONE", "050 123 4567"], ["EMAIL", "sarah.mitchell@example.com"]]
+- text: "Hi, this is Daniel Cooper from procurement. Could I get an NOC for a UK visa application? I plan to travel from 12 November until 26 November. My mobile is +971 55 987 6543."
+  expected: [["NAME", "Daniel Cooper"], ["PHONE", "+971 55 987 6543"]]
+- text: "Hello IT, I need access to SharePoint and the VPN for my new role. Please set it up for my account and contact me on 056 222 3344. Regards, Ahmed Khan"
+  expected: [["NAME", "Ahmed Khan"], ["PHONE", "056 222 3344"]]
+- text: "Please issue NOC for Aisha Al Maktoum, EID 784-1985-7654321-0, phone 056 333 4444."
+  expected: [["NAME", "Aisha Al Maktoum"], ["EID", "784-1985-7654321-0"], ["PHONE", "056 333 4444"]]
+- text: "Contact Omar Hassan (omar.hassan@example.com, 055 111 2222) or Fatima Al Zahra (fatima@example.com)."
+  expected: [["NAME", "Omar Hassan"], ["EMAIL", "omar.hassan@example.com"], ["PHONE", "055 111 2222"], ["NAME", "Fatima Al Zahra"], ["EMAIL", "fatima@example.com"]]
+- text: "Leave for Mohammed bin Rashid 784199012345671 and Ahmed Khan +971 50 000 1111 from 3 March."
+  expected: [["NAME", "Mohammed bin Rashid"], ["EID", "784199012345671"], ["NAME", "Ahmed Khan"], ["PHONE", "+971 50 000 1111"]]
+- text: "Ahmed Khan, Priya Nair, Daniel Cooper and John Smith need VPN access."
+  expected: [["NAME", "Ahmed Khan"], ["NAME", "Priya Nair"], ["NAME", "Daniel Cooper"], ["NAME", "John Smith"]]
+- text: "my name is john smith and my number is 0501234567, email john@example.com"
+  expected: [["NAME", "john smith"], ["PHONE", "0501234567"], ["EMAIL", "john@example.com"]]
+- text: "Aisha Al Maktoum's new number is +971 (0)50 987 6543 and her email is aisha.m@example.ae."
+  expected: [["NAME", "Aisha Al Maktoum"], ["PHONE", "+971 (0)50 987 6543"], ["EMAIL", "aisha.m@example.ae"]]
+
+- text: "Salary certificate please, addressed to my bank for a loan."
+  expected: []
+- text: "I would like to request annual leave from 3 to 14 March."
+  expected: []
+- text: "Password reset please, I am locked out of Office 365."
+  expected: []
+- text: "Access to Jira and SharePoint for the new project, please."
+  expected: []
+- text: "The Eid holidays are from 6 to 9 April this year."
+  expected: []
+- text: "Ticket INC0012345 is still open with the service desk."
+  expected: []
+- text: "Invoice 2026-0912 for AED 15,000 was approved by finance."
+  expected: []
+- text: "Meeting room 04-12 is booked from 09:30 until 11:00."
+  expected: []
+- text: "PO number 7841990123 was raised for the Dubai office."
+  expected: []
+- text: "Flight EK 203 lands in Abu Dhabi at 07:45 tomorrow."
+  expected: []
+- text: "Emirates NBD, ADCB and Mashreq all accept the standard salary letter."
+  expected: []
+- text: "Please courier the documents to the Al Ain office on Sheikh Zayed Road."
+  expected: []
+- text: "Our Etisalat and du corporate plans renew in March."
+  expected: []
+- text: "The DEWA bill for the staff accommodation is attached."
+  expected: []
+- text: "Windows laptop, Chrome, Excel and Microsoft Teams all need to be installed."
+  expected: []
+- text: "Ramadan working hours start next week, please adjust the roster."
+  expected: []
+- text: "Budget code 4471 covers the training in Q3."
+  expected: []
+- text: "Dear Employee Services, kindly confirm the NOC process for a freelance permit."
+  expected: []
+- text: "NOC for a visa please, travelling on 15 July for two weeks."
+  expected: []
+- text: "Can I get a proof of income letter for the rent contract renewal?"
+  expected: []

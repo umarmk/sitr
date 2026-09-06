@@ -67,6 +67,8 @@ class Config:
     request_types: dict[str, RequestType]
     templates: list[Template]
     manipulation_patterns: list[re.Pattern[str]]
+    # each has a (?P<name>...) group capturing the placeholder of whoever wrote the message
+    requester_cues: list[re.Pattern[str]]
     drafts: dict[str, str]
 
 
@@ -76,8 +78,12 @@ DESTINATION_NAME = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
 # Every sentence the rule-based assistant writes; validated at load so a typo in config.yaml
 # fails at startup, not in the middle of a request.
 DRAFT_KEYS = ("greeting_named", "greeting_anonymous", "body_complete", "body_missing", "sign_off")
-# The two sentences assistant.draft() formats, with exactly the fields each call site passes.
-_DRAFT_FIELDS = {"body_complete": ("label",), "body_missing": ("label", "items")}
+# The sentences assistant.draft() formats, with exactly the fields each call site passes.
+_DRAFT_FIELDS = {
+    "greeting_named": ("name",),
+    "body_complete": ("label",),
+    "body_missing": ("label", "items"),
+}
 # Anything a malformed YAML value can raise while being turned into a dataclass.
 _MALFORMED = (KeyError, TypeError, ValueError, AttributeError, IndexError, re.error)
 
@@ -145,6 +151,9 @@ def load_config(path: Path = DEFAULT_CONFIG) -> Config:
         drafts = {k: data["drafts"][k] for k in DRAFT_KEYS}
         for k, fields in _DRAFT_FIELDS.items():
             drafts[k].format(**dict.fromkeys(fields, ""))  # an unknown {field} fails here
+        requester_cues = _rx(data["requester_cues"])
+        if not all("name" in rx.groupindex for rx in requester_cues):
+            raise ConfigError(f"{path}: every requester cue needs a (?P<name>...) group")
         return Config(
             input_max_chars=int(data["input_max_chars"]),
             model=ModelConfig(
@@ -153,6 +162,7 @@ def load_config(path: Path = DEFAULT_CONFIG) -> Config:
             request_types=request_types,
             templates=[Template(t["id"], t["title"], t["text"]) for t in data["templates"]],
             manipulation_patterns=_rx(data["manipulation_patterns"]),
+            requester_cues=requester_cues,
             drafts=drafts,
         )
     except ConfigError:

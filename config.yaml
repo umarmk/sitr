@@ -51,10 +51,18 @@ request_types:
       system_name: ['\bvpn\b', 'sharepoint', '\bjira\b', '\bsap\b', '\bgithub\b', '\bportal\b',
                     '\bemail\b', 'office 365', '\bslack\b', '\bsystem\b']
 
-# Sentences the rule-based assistant writes. {label} and {items} are filled in.
-# [NAME_1] is the first name placeholder; the boundary restores it before display.
+# Who wrote the message. The first cue to match names the placeholder the draft greets; a
+# name that only appears mid-message (a manager, a colleague) is never greeted. Cues run on
+# masked text, so each captures a placeholder in a group called "name".
+requester_cues:
+  - '\b(?:my name is|this is|i am|i''m)\s+(?P<name>\[NAME_\d+\])'
+  - '\b(?:regards|thanks|thank you|cheers|best|sincerely)[,.]?\s+(?P<name>\[NAME_\d+\])'
+  - '(?P<name>\[NAME_\d+\])\s*[.!]?\s*$'   # a name on its own at the very end is a signature
+
+# Sentences the rule-based assistant writes. {name}, {label} and {items} are filled in.
+# {name} is the requester's placeholder; the boundary restores it before display.
 drafts:
-  greeting_named: "Dear [NAME_1],"
+  greeting_named: "Dear {name},"
   greeting_anonymous: "Hello,"
   body_complete: "Thank you for your {label} request. We have everything we need and will process it shortly."
   body_missing: "Thank you for your {label} request. To proceed, please provide the following: {items}."

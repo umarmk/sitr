@@ -16,16 +16,25 @@ EID, PHONE, EMAIL, NAME = "EID", "PHONE", "EMAIL", "NAME"
 # an email address); equal lengths go to the more specific pattern.
 PRIORITY = {EID: 0, PHONE: 1, EMAIL: 2, NAME: 3}
 
+# The UAE country code as people type it: +971, 00971 or 971, optionally followed by "(0)".
+_UAE = r"(?:\+|00)?971[\s-]?(?:\(0\)[\s-]?)?"
 _PATTERNS = {
-    # 784-YYYY-NNNNNNN-N, separators optional. Format only, no checksum.
+    # 784-YYYY-NNNNNNN-N, separators optional. Format only, on purpose: a checksum would just
+    # teach sitr to ignore mistyped IDs, and a mistyped ID is still personal data.
     EID: re.compile(r"\b784[- ]?\d{4}[- ]?\d{7}[- ]?\d\b"),
-    # UAE mobiles: +971 / 00971 / 971 (optionally followed by "(0)") or a leading 0, then 5x
-    # and seven digits, separators optional.
     PHONE: re.compile(
-        r"(?<!\d)(?:(?:\+|00)?971[\s-]?(?:\(0\)[\s-]?)?|0)5\d[\s-]?\d{3}[\s-]?\d{4}(?!\d)"
+        r"(?<!\d)(?:"
+        # UAE mobile (5x + 7 digits) or landline (area code 2/3/4/6/7/9 + 7 digits)
+        rf"(?:{_UAE}|0)(?:5\d|[2-4679])[\s-]?\d{{3}}[\s-]?\d{{4}}"
+        # any other international number: + or 00, country code, then 7-12 digits
+        r"|(?:\+|00)\d{1,3}[\s-]?\d(?:[\s-]?\d){6,11}"
+        r")(?!\d)"
     ),
     EMAIL: re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"),
 }
+# Arabic-Indic (U+0660..) and Extended Arabic-Indic (U+06F0..) digits map onto ASCII one to
+# one, so offsets found on the normalised copy are valid on the original text.
+DIGITS = {0x0660 + i: str(i) for i in range(10)} | {0x06F0 + i: str(i) for i in range(10)}
 
 
 @dataclass(frozen=True)
@@ -48,26 +57,48 @@ def warm() -> None:
     _nlp()
 
 
-def detect(text: str) -> list[Span]:
-    """All personal-data spans in `text`, sorted by position, non-overlapping."""
-    found = [
-        Span(category, m.start(), m.end(), m.group())
-        for category, rx in _PATTERNS.items()
-        for m in rx.finditer(text)
-    ]
-    found += [
-        Span(NAME, ent.start_char, ent.end_char, ent.text)
-        for ent in _nlp()(text).ents
+def _not_name(token) -> bool:
+    """A possessive 's or anything with a digit: spaCy glues these onto PERSON entities."""
+    return token.lower_ in ("'s", "’s") or any(c.isdigit() for c in token.text)
+
+
+def _names(text: str) -> list[Span]:
+    spans = []
+    for ent in _nlp()(text).ents:
         # spaCy tags sentence-initial common nouns ("Salary ...") as PERSON; a name has a
         # proper noun in it.
-        if ent.label_ == "PERSON" and any(t.pos_ == "PROPN" for t in ent)
+        if ent.label_ != "PERSON" or not any(t.pos_ == "PROPN" for t in ent):
+            continue
+        tokens = list(ent)
+        while tokens and _not_name(tokens[-1]):
+            tokens.pop()
+        while tokens and _not_name(tokens[0]):
+            tokens.pop(0)
+        if tokens:
+            start, end = tokens[0].idx, tokens[-1].idx + len(tokens[-1])
+            spans.append(Span(NAME, start, end, text[start:end]))
+    return spans
+
+
+def detect(text: str) -> list[Span]:
+    """All personal-data spans in `text`, sorted by position, non-overlapping."""
+    ascii_digits = text.translate(DIGITS)
+    found = [
+        Span(category, m.start(), m.end(), text[m.start() : m.end()])
+        for category, rx in _PATTERNS.items()
+        for m in rx.finditer(ascii_digits)
     ]
+    found += _names(text)
     chosen: list[Span] = []
-    for span in sorted(found, key=lambda s: (s.start - s.end, PRIORITY[s.category], s.start)):
+    # An EID always wins: it must never end up inside a reversible placeholder.
+    order = sorted(
+        found, key=lambda s: (s.category != EID, s.start - s.end, PRIORITY[s.category], s.start)
+    )
+    for span in order:
         if all(span.end <= c.start or span.start >= c.end for c in chosen):
             chosen.append(span)
     return sorted(chosen, key=lambda s: s.start)
 
 
 def contains_eid(text: str) -> bool:
-    return _PATTERNS[EID].search(text) is not None
+    return _PATTERNS[EID].search(text.translate(DIGITS)) is not None
