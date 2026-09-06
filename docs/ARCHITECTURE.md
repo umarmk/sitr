@@ -33,6 +33,7 @@ flowchart TD
 | Module | Responsibility |
 |--------|----------------|
 | `sitr/config.py` | Load and validate `policy.yaml` and `config.yaml` into dataclasses. |
+| `sitr/refusal.py` | `Refusal(reason, detail)`: the one exception any stage raises to hand a request to a person. Reasons are the closed set in SPEC §4; details are static text. |
 | `sitr/detect.py` | Detectors: regex for EID, UAE mobile, email; spaCy `PERSON` for names. One `detect(text) -> list[Span]` entry point used by masking and both re-checks. |
 | `sitr/mask.py` | Replace spans with placeholders; build per-request mapping; `restore(text, mapping)` restores known placeholders only. |
 | `sitr/policy.py` | Resolve a destination by name; refuse undeclared or unapproved. |
@@ -50,6 +51,8 @@ Nothing behavioural is hardcoded. Two YAML files at the project root, loaded wit
 
 ```yaml
 # policy.yaml — what may go where. A security control.
+default_destination: openrouter
+
 destinations:
   - name: openrouter
     provider: OpenRouter
@@ -78,6 +81,9 @@ request_types:
   it_access:          { keywords: [...], required: [system_name] }
 templates:
   - { id: salary-certificate, title: "...", text: "..." }
+drafts:                      # sentences the rule-based assistant writes
+  greeting_named: "Dear [NAME_1],"   # restored to the real name before display
+  body_missing: "... please provide the following: {items}."
 manipulation_patterns: ["ignore previous instructions", "system prompt", ...]
 ```
 
