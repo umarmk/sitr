@@ -58,7 +58,7 @@ destinations:
     provider: OpenRouter
     region: US
     approved: true
-    model: openai/gpt-4o-mini
+    model: minimax/minimax-m3:free   # any OpenRouter model ID; free tier by default
   - name: example-unapproved      # exists so the refusal path can be demonstrated
     provider: ExampleCloud
     region: EU
@@ -97,14 +97,14 @@ unavailable and the UI says so. Never echoed anywhere.
 | Choice | Why |
 |--------|-----|
 | Python ≥ 3.12, `uv`, `uv.lock` | One-command reproducible install; `uv` fetches the interpreter if missing. `pip install -e .` documented as fallback. |
-| `fastapi` + `uvicorn` | Input validation at the trust boundary (size cap, mode enum) for free; `/docs` for the reviewer. |
+| `fastapi` + `uvicorn` | Request-shape and mode validation at the trust boundary for free; `/docs` for the reviewer. The size cap stays in the boundary so oversized input is refused with an audit record, not a 422. |
 | One static HTML page | No build step, nothing to install for the UI. |
 | `spacy` + pinned `en_core_web_sm` wheel | Name detection as an ordinary dependency: no download step, no account. |
 | `re` for EID / phone / email | Structured formats; regex is the correct tool. |
 | stdlib `urllib` for OpenRouter | One POST does not justify a client library; trivially faked in tests. |
 | `pyyaml` | Human-editable policy and config with comments. |
 | `logging` for audit | Standard sink; the no-PII test captures it directly. |
-| `pytest`, `ruff`, GitHub Actions (3.12, 3.14) | Team-standard hygiene. |
+| `pytest`, `ruff`, `httpx` (test client only), GitHub Actions (3.12, 3.14) | Team-standard hygiene. |
 
 ## Trust boundaries and threats
 

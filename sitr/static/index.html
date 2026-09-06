@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>sitr</title>
+<style>
+  :root { --bg:#f6f6f3; --fg:#1c1c1c; --muted:#6b6b6b; --card:#fff; --line:#dcdcd7; --ok:#1e7d3a; --warn:#b3261e; --accent:#2a4d9b; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#141414; --fg:#ececec; --muted:#a3a3a3; --card:#1d1d1d; --line:#333; --ok:#5fcf7a; --warn:#ff7b72; --accent:#8ab4f8; }
+  }
+  body { margin:0; font:15px/1.45 system-ui, -apple-system, sans-serif; background:var(--bg); color:var(--fg); }
+  main { max-width:980px; margin:0 auto; padding:24px 16px 48px; }
+  h1 { margin:0; font-size:22px; }
+  header p { margin:4px 0 20px; color:var(--muted); max-width:72ch; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  @media (max-width:780px) { .grid { grid-template-columns:1fr; } }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px; min-width:0; }
+  label { display:block; font-size:13px; color:var(--muted); margin:12px 0 4px; }
+  fieldset { border:0; padding:0; margin:0 0 4px; display:flex; gap:18px; flex-wrap:wrap; }
+  fieldset label { margin:0; color:var(--fg); font-size:14px; }
+  textarea, select { width:100%; box-sizing:border-box; font:inherit; padding:9px 10px; border:1px solid var(--line); border-radius:8px; background:transparent; color:inherit; }
+  textarea { min-height:190px; resize:vertical; }
+  button { font:inherit; padding:9px 16px; border-radius:8px; border:1px solid var(--accent); background:var(--accent); color:#fff; cursor:pointer; }
+  button:disabled { opacity:.5; cursor:not-allowed; }
+  .hint { font-size:12px; color:var(--muted); }
+  .row { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:10px; }
+  .badge { display:inline-block; padding:2px 9px; border-radius:999px; font-size:12px; border:1px solid var(--line); margin:0 6px 6px 0; }
+  .badge.ok { border-color:var(--ok); color:var(--ok); }
+  .badge.warn { border-color:var(--warn); color:var(--warn); }
+  h2 { font-size:13px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin:16px 0 6px; }
+  pre { white-space:pre-wrap; word-break:break-word; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:10px; font-size:13px; margin:0; }
+  #result:empty::before { content:"Results appear here. In offline mode nothing leaves this machine."; color:var(--muted); }
+  footer { margin-top:28px; font-size:12px; color:var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>sitr</h1>
+    <p>A privacy boundary between people's messages and AI models. Personal data is taken out before any model sees the text and put back only for the person reading the reply.</p>
+  </header>
+
+  <div class="grid">
+    <section class="card">
+      <fieldset>
+        <label><input type="radio" name="mode" value="offline" checked> Offline · rule-based, nothing leaves</label>
+        <label><input type="radio" name="mode" value="ai" id="mode-ai"> AI · via approved destination</label>
+      </fieldset>
+      <div class="hint" id="ai-hint"></div>
+
+      <div id="dest-wrap" hidden>
+        <label for="destination">Destination (declared in policy.yaml)</label>
+        <select id="destination"></select>
+      </div>
+
+      <label for="template">Example request</label>
+      <select id="template"><option value="">Write your own</option></select>
+
+      <label for="text">Message</label>
+      <textarea id="text" placeholder="Paste or type an employee request. All examples use fictional people."></textarea>
+
+      <div class="row">
+        <span class="hint" id="count"></span>
+        <button id="go">Process</button>
+      </div>
+    </section>
+
+    <section class="card" id="result"></section>
+  </div>
+
+  <footer>Drafts only. sitr never sends anything on anyone's behalf. It is not a compliance product and makes no compliance claims.</footer>
+</main>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const mode = () => document.querySelector('input[name="mode"]:checked').value;
+let caps = { input_max_chars: 4000, ai_available: false, destinations: [] };
+let templates = [];
+
+async function boot() {
+  caps = await (await fetch("/api/capabilities")).json();
+  templates = await (await fetch("/api/templates")).json();
+
+  $("#mode-ai").disabled = !caps.ai_available;
+  $("#ai-hint").textContent = caps.ai_available
+    ? "AI mode sends only the masked text, to the approved destination selected below."
+    : "AI mode is unavailable on this machine: " + caps.ai_reason + ". Offline mode is the full product.";
+
+  for (const d of caps.destinations) {
+    const o = document.createElement("option");
+    o.value = d.name;
+    o.textContent = `${d.name} · ${d.provider}, ${d.region} · ${d.approved ? "approved" : "NOT approved"}`;
+    o.selected = d.name === caps.default_destination;
+    $("#destination").appendChild(o);
+  }
+  for (const t of templates) {
+    const o = document.createElement("option");
+    o.value = t.id; o.textContent = t.title;
+    $("#template").appendChild(o);
+  }
+  updateCount();
+}
+
+function updateCount() {
+  const n = $("#text").value.length;
+  $("#count").textContent = `${n} / ${caps.input_max_chars} characters`;
+}
+
+document.querySelectorAll('input[name="mode"]').forEach((r) =>
+  r.addEventListener("change", () => { $("#dest-wrap").hidden = mode() !== "ai"; }));
+$("#template").addEventListener("change", (e) => {
+  const t = templates.find((t) => t.id === e.target.value);
+  if (t) $("#text").value = t.text;
+  updateCount();
+});
+$("#text").addEventListener("input", updateCount);
+
+$("#go").addEventListener("click", async () => {
+  $("#go").disabled = true;
+  $("#result").innerHTML = '<span class="hint">Processing…</span>';
+  try {
+    const body = { text: $("#text").value, mode: mode(), destination: mode() === "ai" ? $("#destination").value : null };
+    const res = await fetch("/api/process", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    if (!res.ok) throw new Error(`server returned ${res.status}`);
+    render(await res.json());
+  } catch (err) {
+    $("#result").innerHTML = `<span class="badge warn">error</span> ${esc(err.message)}`;
+  } finally {
+    $("#go").disabled = false;
+  }
+});
+
+function render(r) {
+  const d = r.destination;
+  const drafted = r.decision === "drafted";
+  const counts = Object.entries(r.counts).map(([k, v]) => `${k} ${v}`).join(", ") || "none";
+  $("#result").innerHTML = `
+    <div>
+      <span class="badge ${drafted ? "ok" : "warn"}">${drafted ? "drafted" : "handed to a person"}</span>
+      <span class="badge ${d.approved ? "ok" : "warn"}">${esc(d.name)} · ${esc(d.provider ?? "?")} · ${esc(d.region ?? "?")} · ${d.approved ? "approved" : "not approved"}</span>
+      ${r.needs_review ? '<span class="badge warn">needs review</span>' : ""}
+    </div>
+    ${r.reason ? `<h2>Reason</h2><p><code>${esc(r.reason)}</code> · ${esc(r.reason_detail)}</p>` : ""}
+    <h2>Request type</h2>
+    <p>${esc(r.request_type ?? "—")}${r.missing_items.length ? ` · missing: ${esc(r.missing_items.join(", "))}` : ""}</p>
+    <h2>Personal data found</h2>
+    <p>${esc(counts)}</p>
+    ${r.outgoing_text !== null ? `<h2>What the model saw</h2><pre>${esc(r.outgoing_text)}</pre>` : ""}
+    ${r.draft_reply !== null ? `<h2>Draft reply · restored, for a person to review</h2><pre>${esc(r.draft_reply)}</pre>` : ""}
+    <h2>Audit record</h2>
+    <pre>${esc(JSON.stringify(r.audit, null, 2))}</pre>`;
+}
+
+boot();
+</script>
+</body>
+</html>
