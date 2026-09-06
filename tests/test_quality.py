@@ -19,7 +19,7 @@ from sitr.mask import EID_PLACEHOLDER
 
 CORPUS = Path(__file__).parent / "quality" / "corpus.yaml"
 # category -> (min precision, min recall). Measured 2026-09-06, en_core_web_sm 3.8.0.
-THRESHOLDS = {NAME: (0.92, 0.94), PHONE: (1.0, 1.0), EMAIL: (1.0, 1.0), EID: (1.0, 1.0)}
+THRESHOLDS = {NAME: (0.93, 0.95), PHONE: (1.0, 1.0), EMAIL: (1.0, 1.0), EID: (1.0, 1.0)}
 
 
 def cases() -> list[dict]:

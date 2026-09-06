@@ -59,11 +59,43 @@ def warm() -> None:
 
 
 def _not_name(token) -> bool:
-    """A possessive 's or anything with a digit: spaCy glues these onto PERSON entities."""
-    return token.lower_ in ("'s", "’s") or any(c.isdigit() for c in token.text)
+    """Whitespace, a possessive 's or anything with a digit: spaCy glues these onto entities."""
+    return token.is_space or token.lower_ in ("'s", "’s") or any(c.isdigit() for c in token.text)
+
+
+# Lowercase names defeat the statistical model. Where a self-introduction cue, or a sign-off
+# that ends the line, is followed by lowercase words, a second pass runs on a copy with those
+# words capitalised. ASCII only, so offsets hold and the original text is what gets stored.
+# The cue list mirrors config.yaml's requester_cues; it lives here because detection is code.
+_LOWERCASE_AFTER_CUE = re.compile(
+    r"\b(?:my name is|this is|i am|i'm)\s+(?P<intro>[a-z]+(?:[ \t][a-z]+){0,2})"
+    r"|\b(?:regards|thanks|thank you|cheers|best|sincerely)[,.]?\s+"
+    r"(?P<signoff>[a-z]+(?:[ \t][a-z]+){0,2})[ \t]*[.!]?[ \t]*$",
+    re.IGNORECASE | re.MULTILINE,
+)
+_NOT_A_NAME_WORD = frozenset(
+    "a an and at for from here i in is my me not of on or our out please the to with".split()
+)
+
+
+def _recase(m: re.Match[str]) -> str:
+    words = m.group("intro") or m.group("signoff")
+    fixed, stop = [], False
+    for w in re.split(r"([ \t]+)", words):
+        stop = stop or w in _NOT_A_NAME_WORD
+        fixed.append(w if stop or not w.strip() else w.capitalize())
+    return m.group(0).replace(words, "".join(fixed), 1)
 
 
 def _names(text: str) -> list[Span]:
+    spans = _person_spans(text, text)
+    recased = _LOWERCASE_AFTER_CUE.sub(_recase, text)
+    if recased != text:
+        spans += _person_spans(recased, text)
+    return spans
+
+
+def _person_spans(text: str, original: str) -> list[Span]:
     spans = []
     for ent in _nlp()(text).ents:
         # spaCy tags sentence-initial common nouns ("Salary ...") as PERSON; a name has a
@@ -77,7 +109,7 @@ def _names(text: str) -> list[Span]:
             tokens.pop(0)
         if tokens:
             start, end = tokens[0].idx, tokens[-1].idx + len(tokens[-1])
-            spans.append(Span(NAME, start, end, text[start:end]))
+            spans.append(Span(NAME, start, end, original[start:end]))
     return spans
 
 
