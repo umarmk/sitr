@@ -1,20 +1,52 @@
 # sitr
 
-*sitr* (Arabic ستر — to veil, to shield) is a privacy boundary that sits between people's
-messages and AI models. Text goes in, personal data is taken out, only the cleaned text
-reaches a model, and the reply comes back with the personal data restored for the human
-who needs it.
+**sitr keeps people's personal data out of AI models.** It sits between a message and the
+model: personal data is taken out before the model sees the text, and put back only for
+the person who reads the reply.
 
-It ships with a small reference assistant for an employee-services desk (salary
-certificates, NOC letters, leave, IT access) to show the boundary doing real work. The
-assistant only ever sees cleaned text. That is the point: it does its job without ever
-seeing anyone's personal data.
+*sitr* (ستر) is Arabic for "to veil, to shield".
+
+## The problem
+
+Employees write to HR, admin and IT desks in plain language, and those messages carry
+personal data: names, phone numbers, email addresses, Emirates ID numbers. Organisations
+want AI to help handle these requests, but the text cannot simply be sent to a model. The
+personal data would leave the organisation, reach a service nobody approved, and end up
+in prompts and logs.
+
+## The solution
+
+sitr is the boundary every message passes through on the way to a model, and every reply
+passes back through on the way to a person.
+
+| | |
+|---|---|
+| **The employee writes** | Hi, I'm Sarah Mitchell, Emirates ID 784-1990-1234567-1. Call me on 050 123 4567 about my salary certificate for a car loan. |
+| **The model sees** | Hi, I'm `[NAME_1]`, Emirates ID `[EID_MASKED]`. Call me on `[PHONE_1]` about my salary certificate for a car loan. |
+| **The person reads** | Dear Sarah Mitchell, thank you for your salary certificate request. We have everything we need… |
+| **The audit record says** | `NAME 1 · EID 1 · PHONE 1 · destination offline/local, approved · decision drafted` and nothing else |
+
+Before anything leaves, sitr finds the personal data and replaces it with placeholders.
+Names, emails and phones can be restored later; the mapping lives in memory for that one
+request. Emirates ID numbers are blanked for good and never leave. sitr then checks the
+destination against a written policy, re-checks the outgoing text and refuses to send if
+anything slipped through, restores the placeholders in the reply for the human reader, and
+writes an audit record that contains counts, never the data.
+
+A person stays in charge: sitr drafts, it never sends. Anything it cannot recognise,
+anything malformed, and anything that looks like an attempt to manipulate it is handed to
+a person with the reason stated.
+
+To show the boundary doing real work, sitr ships with a small reference assistant for an
+employee-services desk (salary certificates, NOC letters, leave, IT access). The assistant
+only ever sees the cleaned text. That is the point: it does its job without ever seeing
+anyone's personal data.
 
 **Offline mode is the complete product.** It needs no API key, no account, no network and
-no separate model download. AI mode is optional; it exists to show that the same boundary
-holds when a real model is behind it, and nobody has to run it to evaluate the project.
+no separate model download. AI mode is optional; it shows that the same boundary holds
+when a real model is behind it, and nobody has to run it to evaluate the project.
 
-## What happens to a message
+## How it works
 
 ```mermaid
 flowchart LR
