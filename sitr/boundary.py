@@ -7,6 +7,7 @@ validate -> detect -> mask -> policy -> re-check outgoing -> model -> validate o
 
 from __future__ import annotations
 
+import os
 import re
 from dataclasses import dataclass
 
@@ -15,7 +16,16 @@ from sitr import policy as policies
 from sitr.config import Config, Policy, load_config, load_policy
 from sitr.detect import contains_eid, detect
 from sitr.mask import EID_PLACEHOLDER, PLACEHOLDER_RE, Masker, restore
-from sitr.model import UNKNOWN, Model, ModelError, ModelOutput, RuleBasedModel
+from sitr.model import (
+    API_KEY_ENV,
+    UNKNOWN,
+    InvalidModelOutput,
+    Model,
+    ModelError,
+    ModelOutput,
+    OpenRouterModel,
+    RuleBasedModel,
+)
 from sitr.refusal import Refusal
 
 _ARABIC = re.compile(r"[\u0600-\u06FF]")  # Arabic script block
@@ -32,7 +42,7 @@ class Result:
     request_type: str | None
     missing_items: list[str]
     draft_reply: str | None
-    outgoing_text: str | None  # exactly what the model saw; None if nothing was sent
+    outgoing_text: str | None  # masked text cleared to leave; None if refused before the re-check
     counts: dict[str, int]
     needs_review: bool
     audit: dict
@@ -118,21 +128,23 @@ def process(
         masked, masker = _mask(text)
         counts = dict(masker.counts)
         if mode == "ai":
-            policies.resolve(policy, destination)
+            dest = policies.resolve(policy, destination)
+            model = model or OpenRouterModel(
+                dest, config.model, api_key=os.environ.get(API_KEY_ENV)
+            )
+        else:
+            model = model or RuleBasedModel(config)
         if detect(masked):
             raise Refusal(
                 "outgoing_recheck_failed", "personal data survived masking; nothing was sent"
             )
-        if model is None:
-            if mode == "ai":
-                # ponytail: the real model lands in the next PR; until then AI mode says so
-                raise Refusal("model_unavailable", "no AI model is configured")
-            model = RuleBasedModel(config)
         outgoing = masked
         try:
             out = model.complete(masked)
         except ModelError as e:  # ModelError messages are static; they never carry text
             raise Refusal("model_unavailable", str(e)) from e
+        except InvalidModelOutput as e:
+            raise Refusal("model_output_invalid", "the model did not return valid JSON") from e
         _check_output(out, config)
         request_type, missing = out.request_type, list(out.missing_items)
         draft_reply, unknown = restore(out.draft_reply, masker.mapping)
