@@ -96,9 +96,11 @@ def test_ai_mode_refuses_unapproved_destination(dest: str) -> None:
     assert r.outgoing_text is None and r.destination["approved"] is False
 
 
-def test_ai_mode_without_a_model_is_refused() -> None:
+def test_ai_mode_without_an_api_key_is_refused(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     r = process(REQUEST, mode="ai")
-    assert r.reason == "model_unavailable" and r.outgoing_text is None
+    assert r.reason == "model_unavailable"
+    assert "[NAME_1]" in r.outgoing_text  # cleared to leave, but never sent
 
 
 def test_model_error_becomes_model_unavailable() -> None:

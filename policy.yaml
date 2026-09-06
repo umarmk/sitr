@@ -8,7 +8,7 @@ destinations:
     provider: OpenRouter
     region: US
     approved: true
-    model: openai/gpt-4o-mini
+    model: minimax/minimax-m3:free
 
   # Declared but not approved, so the refusal path can be demonstrated from the UI.
   - name: example-unapproved
