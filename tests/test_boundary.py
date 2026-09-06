@@ -6,7 +6,7 @@ import logging
 import pytest
 
 from sitr.boundary import process
-from sitr.config import load_config
+from sitr.config import ConfigError, load_config
 from sitr.detect import PHONE
 from sitr.mask import Masker
 from sitr.model import ModelError, ModelOutput
@@ -26,14 +26,13 @@ REQUEST = (
 class Stub:
     """Stands in for a real model: returns a fixed output or raises a fixed error."""
 
-    def __init__(self, out: ModelOutput | None = None, err: Exception | None = None) -> None:
+    def __init__(self, out: object = None, err: Exception | None = None) -> None:
         self.out, self.err = out, err
 
     def complete(self, masked_text: str) -> ModelOutput:
         if self.err:
             raise self.err
-        assert self.out is not None
-        return self.out
+        return self.out  # type: ignore[return-value]
 
 
 def test_offline_end_to_end() -> None:  # T-1
@@ -148,3 +147,36 @@ def test_shipped_templates_behave_as_advertised() -> None:
     missing = process(next(t.text for t in load_config().templates if t.id == "missing-details"))
     assert missing.missing_items == ["addressee", "purpose"]
     assert "John Smith" in missing.draft_reply
+
+
+def test_offline_never_loads_the_policy(monkeypatch: pytest.MonkeyPatch) -> None:
+    def broken(*_: object, **__: object) -> None:
+        raise ConfigError("policy.yaml: broken on purpose")
+
+    monkeypatch.setattr("sitr.boundary.load_policy", broken)
+    assert process(REQUEST).decision == "drafted"
+
+
+@pytest.mark.parametrize(
+    "out",
+    [
+        ModelOutput("leave", None, "x"),  # type: ignore[arg-type]
+        ModelOutput("leave", ["a", 1], "x"),  # type: ignore[list-item]
+        ModelOutput("leave", [], None),  # type: ignore[arg-type]
+        "not a ModelOutput at all",
+    ],
+)
+def test_malformed_model_output_is_refused_not_raised(out: object) -> None:
+    r = process(REQUEST, mode="ai", model=Stub(out))
+    assert r.reason == "model_output_invalid"
+    assert r.audit["refusal_reason"] == "model_output_invalid"
+
+
+def test_literal_placeholder_in_input_is_refused() -> None:
+    text = "Please email [EMAIL_1] about my salary certificate for a loan, addressed to the bank."
+    assert process(text).reason == "suspected_manipulation"
+
+
+def test_bare_preposition_is_not_a_date() -> None:
+    r = process("Hi, this is Daniel Cooper from procurement. I need an NOC for a visa. Thanks.")
+    assert (r.request_type, r.missing_items) == ("noc_letter", ["dates"])

@@ -14,8 +14,8 @@ from sitr import audit
 from sitr import policy as policies
 from sitr.config import Config, Policy, load_config, load_policy
 from sitr.detect import contains_eid, detect
-from sitr.mask import Masker, restore
-from sitr.model import UNKNOWN, Model, ModelError, RuleBasedModel
+from sitr.mask import EID_PLACEHOLDER, PLACEHOLDER_RE, Masker, restore
+from sitr.model import UNKNOWN, Model, ModelError, ModelOutput, RuleBasedModel
 from sitr.refusal import Refusal
 
 _ARABIC = re.compile(r"[\u0600-\u06FF]")  # Arabic script block
@@ -53,6 +53,9 @@ def _validate(text: str, config: Config) -> None:
                 "suspected_manipulation",
                 "the message looks like an attempt to steer the assistant",
             )
+    if PLACEHOLDER_RE.search(text) or EID_PLACEHOLDER in text:
+        # A literal placeholder in the input would be restored into real data on the way back.
+        raise Refusal("suspected_manipulation", "the message contains reserved placeholder tokens")
 
 
 def _mask(text: str) -> tuple[str, Masker]:
@@ -68,6 +71,25 @@ def _mask(text: str) -> tuple[str, Masker]:
     return masked, masker
 
 
+def _check_output(out: ModelOutput, config: Config) -> None:
+    """The model is outside the trust boundary: check shape and values before use."""
+    well_formed = (
+        isinstance(out, ModelOutput)
+        and isinstance(out.request_type, str)
+        and isinstance(out.missing_items, list)
+        and all(isinstance(item, str) for item in out.missing_items)
+        and isinstance(out.draft_reply, str)
+    )
+    if not well_formed:
+        raise Refusal("model_output_invalid", "the model returned a malformed answer")
+    if out.request_type == UNKNOWN:
+        raise Refusal("unrecognised_request", "the request does not match a known type")
+    if out.request_type not in config.request_types:
+        raise Refusal(
+            "model_output_invalid", "the model returned a request type outside the known set"
+        )
+
+
 def process(
     text: str,
     *,
@@ -80,10 +102,12 @@ def process(
     if mode not in MODES:
         raise ValueError(f"mode must be one of {MODES}")
     config = config or load_config()
-    policy = policy or load_policy()
-    dest_view = policies.view(policies.OFFLINE)
     if mode == "ai":
+        # Policy is consulted only when text may leave the machine; offline never needs it.
+        policy = policy or load_policy()
         dest_view = policies.describe(policy, destination)
+    else:
+        dest_view = policies.view(policies.OFFLINE)
 
     counts: dict[str, int] = {}
     outgoing = request_type = draft_reply = None
@@ -109,12 +133,7 @@ def process(
             out = model.complete(masked)
         except ModelError as e:  # ModelError messages are static; they never carry text
             raise Refusal("model_unavailable", str(e)) from e
-        if out.request_type == UNKNOWN:
-            raise Refusal("unrecognised_request", "the request does not match a known type")
-        if out.request_type not in config.request_types:
-            raise Refusal(
-                "model_output_invalid", "the model returned a request type outside the known set"
-            )
+        _check_output(out, config)
         request_type, missing = out.request_type, list(out.missing_items)
         draft_reply, unknown = restore(out.draft_reply, masker.mapping)
         needs_review = bool(unknown)

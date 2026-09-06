@@ -21,7 +21,8 @@ class Masker:
     def __init__(self) -> None:
         self.mapping: dict[str, str] = {}  # placeholder -> original; EIDs never enter
         self.counts: Counter[str] = Counter()
-        self._by_value: dict[tuple[str, str], str] = {}  # same value -> same placeholder
+        # exact text -> same placeholder; case-distinct values stay distinct so restore is exact
+        self._by_value: dict[tuple[str, str], str] = {}
         self._seq: Counter[str] = Counter()
 
     def apply(self, text: str, spans: list[Span]) -> str:
@@ -38,7 +39,7 @@ class Masker:
         self.counts[span.category] += 1
         if span.category == EID:
             return EID_PLACEHOLDER
-        key = (span.category, span.text.strip().lower())
+        key = (span.category, span.text)
         if key not in self._by_value:
             self._seq[span.category] += 1
             self._by_value[key] = f"[{span.category}_{self._seq[span.category]}]"

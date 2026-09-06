@@ -16,6 +16,14 @@ model:
      "missing_items": ["<items the requester must still provide>"],
      "draft_reply": "<a short, polite reply a person will review before sending>"}
 
+# Date cues shared by request types. A bare preposition ("from procurement") is not a date:
+# a cue must contain a day and month, a numeric date, or a relative day.
+date_cues: &dates
+  - '\d{1,2}[/.-]\d{1,2}([/.-]\d{2,4})?'
+  - '\b\d{1,2}(st|nd|rd|th)?\s+(of\s+)?(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\b'
+  - '\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{1,2}(st|nd|rd|th)?\b'
+  - '\b(tomorrow|next (week|month)|this (week|month))\b'
+
 request_types:
   salary_certificate:
     label: salary certificate
@@ -28,14 +36,12 @@ request_types:
     keywords: ['\bnoc\b', 'no[- ]objection']
     required:
       purpose: ['purpose', '\bfor (a|an|my)\b', '\bvisa\b', 'travel', 'driving licen[cs]e', 'freelance']
-      dates: ['\bfrom\b', '\buntil\b', '\btill\b', '\bbetween\b', '\d{1,2}[/.-]\d{1,2}',
-              '\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\b']
+      dates: *dates
   leave:
     label: leave request
     keywords: ['\bleave\b', 'vacation', 'time off', 'days? off']
     required:
-      dates: ['\bfrom\b', '\buntil\b', '\btill\b', '\bbetween\b', '\d{1,2}[/.-]\d{1,2}',
-              '\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\b']
+      dates: *dates
       leave_type: ['annual', 'sick', 'unpaid', 'maternity', 'paternity', 'compassionate', 'emergency']
   it_access:
     label: IT access request

@@ -89,12 +89,18 @@ def _load_yaml(path: Path) -> dict:
 def load_policy(path: Path = DEFAULT_POLICY) -> Policy:
     data = _load_yaml(path)
     try:
-        destinations = {
-            d["name"]: Destination(
-                d["name"], d["provider"], d["region"], bool(d["approved"]), d["model"]
+        destinations = {}
+        for d in data["destinations"]:
+            if not isinstance(d["approved"], bool):  # a quoted "false" would coerce to True
+                raise ConfigError(
+                    f"{path}: destination '{d['name']}' has approved={d['approved']!r}; "
+                    "it must be the YAML boolean true or false"
+                )
+            destinations[d["name"]] = Destination(
+                d["name"], d["provider"], d["region"], d["approved"], d["model"]
             )
-            for d in data["destinations"]
-        }
+        if data["default_destination"] not in destinations:
+            raise ConfigError(f"{path}: default_destination is not a declared destination")
         return Policy(destinations, data["default_destination"])
     except (KeyError, TypeError) as e:
         raise ConfigError(f"{path}: malformed policy ({e!r})") from e

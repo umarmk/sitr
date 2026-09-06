@@ -32,3 +32,11 @@ def test_unknown_placeholder_stays_literal_and_is_reported() -> None:
     restored, unknown = restore("Dear [NAME_1], cc [EMAIL_9]", {"[NAME_1]": "Sarah Mitchell"})
     assert restored == "Dear Sarah Mitchell, cc [EMAIL_9]"
     assert unknown == ["[EMAIL_9]"]
+
+
+def test_case_distinct_values_stay_distinct() -> None:
+    text = "Write to Alice@Example.com or alice@example.com"
+    masker = Masker()
+    masked = masker.apply(text, detect(text))
+    assert "[EMAIL_1]" in masked and "[EMAIL_2]" in masked
+    assert restore(masked, masker.mapping) == (text, [])
