@@ -95,8 +95,8 @@ Never cut: offline flow, T-2, T-3, honest refusal, README.
 
 - Name detection uses a small statistical model (`en_core_web_sm`). It misses lowercase
   or uncommon names and can flag non-names. Precision is stated, not measured.
-- Phone detection covers UAE mobile formats (`+971 5x`, `05x`); landlines and foreign
-  numbers are not detected.
+- Phone detection covers UAE mobile spellings (`+971 5x`, `00971 5x`, `971 5x`, `+971 (0)5x`,
+  `05x`); landlines and foreign numbers are not detected.
 - Emirates ID detection is format-based (`784-YYYY-NNNNNNN-N`, separators optional); no
   checksum validation.
 - Manipulation detection is a keyword heuristic, not a classifier.

@@ -11,12 +11,12 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Literal
 
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
-from pydantic import BaseModel
+from fastapi import FastAPI, Request
+from fastapi.responses import FileResponse, JSONResponse
+from pydantic import BaseModel, Field
 
 from sitr.boundary import process
-from sitr.config import ConfigError, load_config, load_policy
+from sitr.config import DESTINATION_NAME, ConfigError, load_config, load_policy
 from sitr.model import API_KEY_ENV, ai_available
 from sitr.policy import view
 
@@ -27,7 +27,14 @@ app = FastAPI(title="sitr", redoc_url=None)
 class ProcessRequest(BaseModel):
     text: str
     mode: Literal["offline", "ai"] = "offline"
-    destination: str | None = None
+    # An identifier, not free text: the same shape policy.yaml enforces on declared names.
+    destination: str | None = Field(None, pattern=DESTINATION_NAME.pattern)
+
+
+@app.exception_handler(ConfigError)
+def config_error(_: Request, e: ConfigError) -> JSONResponse:
+    """Operator misconfiguration, not a user error: say which file and why, from any endpoint."""
+    return JSONResponse(status_code=503, content={"detail": str(e)})
 
 
 @app.get("/", include_in_schema=False)
@@ -67,7 +74,4 @@ def templates() -> list[dict]:
 
 @app.post("/api/process")
 def run(req: ProcessRequest) -> dict:
-    try:
-        return asdict(process(req.text, mode=req.mode, destination=req.destination))
-    except ConfigError as e:  # operator misconfiguration, not a user error
-        raise HTTPException(status_code=503, detail="policy.yaml could not be loaded") from e
+    return asdict(process(req.text, mode=req.mode, destination=req.destination))

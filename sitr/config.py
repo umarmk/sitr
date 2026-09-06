@@ -70,7 +70,21 @@ class Config:
     drafts: dict[str, str]
 
 
-def _rx(patterns: list[str]) -> list[re.Pattern[str]]:
+# Destination names are identifiers. The API checks its `destination` field against this
+# same pattern, so every declared name is selectable and nothing else gets through.
+DESTINATION_NAME = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
+# Every sentence the rule-based assistant writes; validated at load so a typo in config.yaml
+# fails at startup, not in the middle of a request.
+DRAFT_KEYS = ("greeting_named", "greeting_anonymous", "body_complete", "body_missing", "sign_off")
+# The two sentences assistant.draft() formats, with exactly the fields each call site passes.
+_DRAFT_FIELDS = {"body_complete": ("label",), "body_missing": ("label", "items")}
+# Anything a malformed YAML value can raise while being turned into a dataclass.
+_MALFORMED = (KeyError, TypeError, ValueError, AttributeError, IndexError, re.error)
+
+
+def _rx(patterns: object) -> list[re.Pattern[str]]:
+    if not isinstance(patterns, list):  # a bare string would compile per character
+        raise TypeError(f"expected a list of patterns, got {type(patterns).__name__}")
     return [re.compile(p, re.IGNORECASE) for p in patterns]
 
 
@@ -78,8 +92,8 @@ def _load_yaml(path: Path) -> dict:
     try:
         with open(path, encoding="utf-8") as f:
             data = yaml.safe_load(f)
-    except FileNotFoundError as e:
-        raise ConfigError(f"{path}: not found") from e
+    except (OSError, yaml.YAMLError) as e:
+        raise ConfigError(f"{path}: {e}") from e
     if not isinstance(data, dict):
         raise ConfigError(f"{path}: expected a mapping at the top level")
     return data
@@ -91,6 +105,10 @@ def load_policy(path: Path = DEFAULT_POLICY) -> Policy:
     try:
         destinations = {}
         for d in data["destinations"]:
+            if not (isinstance(d["name"], str) and DESTINATION_NAME.fullmatch(d["name"])):
+                raise ConfigError(
+                    f"{path}: destination name {d['name']!r} must match {DESTINATION_NAME.pattern}"
+                )
             if not isinstance(d["approved"], bool):  # a quoted "false" would coerce to True
                 raise ConfigError(
                     f"{path}: destination '{d['name']}' has approved={d['approved']!r}; "
@@ -102,7 +120,9 @@ def load_policy(path: Path = DEFAULT_POLICY) -> Policy:
         if data["default_destination"] not in destinations:
             raise ConfigError(f"{path}: default_destination is not a declared destination")
         return Policy(destinations, data["default_destination"])
-    except (KeyError, TypeError) as e:
+    except ConfigError:
+        raise
+    except _MALFORMED as e:
         raise ConfigError(f"{path}: malformed policy ({e!r})") from e
 
 
@@ -120,6 +140,11 @@ def load_config(path: Path = DEFAULT_CONFIG) -> Config:
             )
             for key, rt in data["request_types"].items()
         }
+        if not request_types:
+            raise ConfigError(f"{path}: request_types must declare at least one type")
+        drafts = {k: data["drafts"][k] for k in DRAFT_KEYS}
+        for k, fields in _DRAFT_FIELDS.items():
+            drafts[k].format(**dict.fromkeys(fields, ""))  # an unknown {field} fails here
         return Config(
             input_max_chars=int(data["input_max_chars"]),
             model=ModelConfig(
@@ -128,7 +153,9 @@ def load_config(path: Path = DEFAULT_CONFIG) -> Config:
             request_types=request_types,
             templates=[Template(t["id"], t["title"], t["text"]) for t in data["templates"]],
             manipulation_patterns=_rx(data["manipulation_patterns"]),
-            drafts=dict(data["drafts"]),
+            drafts=drafts,
         )
-    except (KeyError, TypeError, re.error) as e:
+    except ConfigError:
+        raise
+    except _MALFORMED as e:
         raise ConfigError(f"{path}: malformed config ({e!r})") from e
