@@ -61,7 +61,7 @@ flowchart LR
     E --> F[Re-check outgoing text]
     F --> G{Mode}
     G -->|offline| H[Rule-based assistant]
-    G -->|ai| I[Approved model<br/>sees placeholders only]
+    G -->|ai| I[Approved model<br/>sees masked text only]
     H --> J[Validate answer]
     I --> J
     J --> K[Restore known placeholders]
@@ -73,7 +73,8 @@ flowchart LR
    is handed to a person with the reason stated. sitr never crashes and never guesses.
 2. **Detect.** Emirates ID numbers, phone numbers (UAE mobile and landline, international)
    and email addresses by pattern, Arabic-Indic digits included; personal names with a small
-   statistical model that installs as an ordinary dependency.
+   statistical model that installs as an ordinary dependency, plus a second pass for
+   lowercase names after a self-introduction or sign-off.
 3. **Mask.** Names, emails and phones become `[NAME_1]`, `[EMAIL_1]`, `[PHONE_1]` with a
    mapping held in memory for this request only. Emirates IDs become `[EID_MASKED]` and
    are never stored, mapped or restored.
@@ -97,10 +98,12 @@ flowchart LR
 
 ## Why it holds
 
-- **You cannot leak what you never saw.** Employee text is data, never instructions. Offline
-  there is nothing to hijack. In AI mode the model holds placeholders only, its answer is
-  checked against a closed set of request types, and placeholders are restored only from the
-  request's own mapping. A successful manipulation has nothing to take.
+- **You cannot leak what you never saw.** The original text, the placeholder mapping and
+  every Emirates ID stay inside the boundary; no model ever receives them. What a model in
+  AI mode receives is the masked text, with a placeholder for everything the detectors found
+  (measured below), treated as data, never instructions. Its answer is checked against a
+  closed set of request types and placeholders are restored only from the request's own
+  mapping, so a manipulation cannot reach anything sitr holds.
 - **Fails closed.** Any stage can refuse. Every refusal is one of nine named reasons, handed
   to a person, and audited. No error path sends text anyway.
 - **Security in code, policy in configuration.** Detectors, placeholder format and output
@@ -244,7 +247,7 @@ Each refusal is handed to a person with the reason stated, and still produces an
 
 ## Tests and CI
 
-144 tests, no network, under ten seconds.
+155 tests, no network, under ten seconds.
 
 ```bash
 uv run pytest -q
@@ -257,26 +260,28 @@ The suite asserts:
 - **no personal data in logs or audit records**, over captured log output;
 - the outgoing re-check refusing when masking is deliberately broken;
 - the Emirates ID never restorable, even when the name model glues it onto a name;
-- every refusal reason, and no path that raises instead of refusing: malformed
-  configuration, malformed model output, text that is not valid Unicode;
+- every refusal reason; malformed model output and text that is not valid Unicode are
+  refused, not raised; malformed configuration fails loudly at load (CLI exit 2, HTTP 503)
+  instead of mid-request;
 - the policy refusing undeclared and unapproved destinations, and a hostile destination
   name never reaching the log;
 - AI mode against an in-process fake gateway: only placeholders leave, the key never
   appears in any output, and HTTP, JSON and closed-set failures are refused, not raised;
 - the web endpoints and the CLI;
-- detection quality on a labelled synthetic corpus of 100 desk messages, gated per
+- detection quality on a labelled synthetic corpus of 109 desk messages, gated per
   category:
 
 | Category | Values | Precision | Recall |
 |---|---|---|---|
-| Names | 56 | 93.0% | 94.6% |
+| Names | 60 | 93.4% | 95.0% |
 | Phone numbers | 33 | 100% | 100% |
 | Email addresses | 14 | 100% | 100% |
 | Emirates IDs | 9 | 100% | 100% |
 
-Measured on 2026-09-06 with the pinned `en_core_web_sm` 3.8.0. The name misses are the
-deliberately lowercase entries; the false positives are over-masking of a system, a bank, a
-city and a road, the safe direction. CI fails if any category drops below its threshold.
+Measured on 2026-09-06 with the pinned `en_core_web_sm` 3.8.0. The three name misses are
+two sentence-initial names the model reads as places and one lone first name after a
+sign-off; the four false positives are over-masking of a system, a bank, a city and a road,
+the safe direction. CI fails if any category drops below its threshold.
 
 Built as a series of small pull requests against a PR-only `main`, each reviewed before
 merge, with seven decision records in `docs/adr/`. CI runs the same commands on Python 3.12
@@ -311,17 +316,19 @@ so precisely:
   landline, international) and email addresses, in Western or Arabic-Indic digits. Passport
   numbers, IBANs and addresses are the next categories, one pattern each behind `detect()`.
 - **English messages.** Arabic-script text is handed to a person rather than guessed at.
-- **Measured, gated detection.** The numbers above are the contract; the remaining name
-  misses are lowercase names, which is one reason a person reviews every draft.
+- **Measured, gated detection.** The numbers above are the contract. Lowercase names after
+  a self-introduction or sign-off get a second, recased pass; the remaining misses are names
+  the model reads as places, which is one reason a person reviews every draft.
 
 Two things are decisions, not gaps:
 
 - **Emirates IDs are matched by format, without a checksum.** A checksum would only teach
   sitr to ignore a mistyped ID, and a mistyped ID is still personal data. Over-detection is
   the safe direction, and a format match already goes irreversible.
-- **The manipulation check is triage, not the control.** The model only ever holds
-  placeholders, so a successful injection has nothing to take. The keyword check saves a
-  person's time; the architecture keeps the data.
+- **The manipulation check is triage, not the control.** The control is architectural: the
+  original text, the mapping and every Emirates ID never reach a model, and nothing is
+  restored except from the request's own mapping. The keyword check saves a person's time;
+  the architecture keeps the data.
 
 ## If I had more time
 

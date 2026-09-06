@@ -14,7 +14,7 @@ flowchart TD
     R1 -->|hit| HP
     R1 --> MODEL{mode}
     MODEL -->|offline| RB[RuleBasedModel<br/>keywords · missing items · draft]
-    MODEL -->|ai| OR[OpenRouterModel<br/>sees placeholders only]
+    MODEL -->|ai| OR[OpenRouterModel<br/>sees masked text only]
     RB --> VAL[validate output: closed set of request types]
     OR --> VAL
     VAL -->|invalid| HP
@@ -112,9 +112,10 @@ unavailable and the UI says so. Never echoed anywhere.
 ## Trust boundaries and threats
 
 - **Employee text is data, never instructions.** Offline mode has no instruction channel
-  at all. In `ai` mode the model only ever holds placeholders, its output is validated
-  against the closed set of request types, and placeholders are restored only from the
-  request's own mapping. A successful manipulation has nothing to leak.
+  at all. In `ai` mode the model receives the masked text (a placeholder for everything the
+  detectors found; never the original text, the mapping or an Emirates ID), its output is
+  validated against the closed set of request types, and placeholders are restored only
+  from the request's own mapping. A successful manipulation cannot reach anything sitr holds.
 - **Leakage paths considered:** logs (structured audit only, tested), exceptions (never
   include text), model request (outgoing re-check), UI (localhost, no secrets), audit
   record (categories and counts only), restored reply (EID re-check).

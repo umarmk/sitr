@@ -163,6 +163,12 @@ def test_signature_followed_by_a_phone_line_still_counts() -> None:
     assert r.counts == {"NAME": 1, "PHONE": 1} and r.draft_reply.startswith("Dear Omar Hassan,")
 
 
+def test_lowercase_message_is_masked_and_restored_as_written() -> None:
+    r = process("this is ravi kumar from it, i need vpn access please")
+    assert (r.request_type, r.counts) == ("it_access", {"NAME": 1})
+    assert "ravi" not in r.outgoing_text and r.draft_reply.startswith("Dear ravi kumar,")
+
+
 def test_no_self_introduction_means_an_anonymous_greeting() -> None:
     r = process("Priya Nair approved my annual leave from 3 to 14 March.")
     assert r.counts == {"NAME": 1} and r.draft_reply.startswith("Hello,")

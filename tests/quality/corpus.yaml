@@ -66,6 +66,14 @@
   expected: [["NAME", "sarah mitchell"]]
 - text: "thanks, john smith"
   expected: [["NAME", "john smith"]]
+- text: "this is ravi kumar from it, i need vpn access please"
+  expected: [["NAME", "ravi kumar"]]
+- text: "cheers, priya nair"
+  expected: [["NAME", "priya nair"]]
+- text: "sincerely, ahmed khan"
+  expected: [["NAME", "ahmed khan"]]
+- text: "kind regards, noura al kaabi"
+  expected: [["NAME", "noura al kaabi"]]
 - text: "Emily Watson (HR business partner) can approve this on my behalf."
   expected: [["NAME", "Emily Watson"]]
 - text: "Michael Brown needs the VPN reset, he is travelling to London tomorrow."
@@ -208,4 +216,12 @@
 - text: "NOC for a visa please, travelling on 15 July for two weeks."
   expected: []
 - text: "Can I get a proof of income letter for the rent contract renewal?"
+  expected: []
+- text: "i am locked out of my account and need a password reset"
+  expected: []
+- text: "this is urgent, please help with the vpn"
+  expected: []
+- text: "thanks, team"
+  expected: []
+- text: "regards, hr department"
   expected: []

@@ -98,15 +98,18 @@ Never cut: offline flow, T-2, T-3, honest refusal, README.
 
 - Name detection uses a small statistical model (`en_core_web_sm`). Precision and recall
   are measured per category on a labelled synthetic corpus (`tests/quality/corpus.yaml`,
-  reported by `tests/test_quality.py`) and gated in CI. Lowercase names are the main gap.
+  reported by `tests/test_quality.py`) and gated in CI. Lowercase names after a
+  self-introduction or sign-off get a second, recased pass; the remaining misses are names
+  the model reads as places.
 - Phone detection covers UAE mobiles and landlines in the common spellings (`+971`, `00971`,
   `971`, `(0)`, leading `0`) and international numbers written with `+` or `00`.
 - Emirates ID detection is format-based (`784-YYYY-NNNNNNN-N`, separators optional) with no
   checksum, by decision: a checksum would only let sitr ignore a mistyped ID, and a mistyped
   ID is still personal data. Over-detection is the safe direction.
 - Manipulation detection is a keyword heuristic used as triage, not as the control. The
-  control is architectural: the model only ever holds placeholders (see ARCHITECTURE,
-  trust boundaries).
+  control is architectural: the original text, the mapping and Emirates IDs never reach a
+  model, and restoration uses only the request's own mapping (see ARCHITECTURE, trust
+  boundaries).
 - English text only; the language check is a script heuristic, not language identification.
 - The outgoing re-check reuses the same detectors as masking. It catches masking faults
   (a replacement bug, a skipped span, a name spaCy only recognises on a second pass), not

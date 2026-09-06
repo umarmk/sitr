@@ -50,6 +50,40 @@ def test_eid_glued_to_a_name_stays_its_own_span() -> None:
     ]
 
 
+@pytest.mark.parametrize(
+    ("text", "name"),
+    [
+        ("this is ravi kumar from it", "ravi kumar"),
+        ("cheers, priya nair", "priya nair"),
+        ("kind regards, noura al kaabi", "noura al kaabi"),
+        ("i am aisha al maktoum from marketing", "aisha al maktoum"),
+    ],
+)
+def test_lowercase_name_after_a_cue_is_found_and_kept_lowercase(text: str, name: str) -> None:
+    assert found(text) == [(NAME, name)]
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "i am locked out of my account",
+        "this is urgent, please help",
+        "thanks, team",
+        "regards, hr department",
+        "thanks a lot for the quick turnaround",
+    ],
+)
+def test_lowercase_words_after_a_cue_that_are_not_a_name(text: str) -> None:
+    assert detect(text) == []
+
+
+def test_newline_after_a_signature_is_not_part_of_the_name() -> None:
+    assert found("regards, omar hassan\n050 123 4567") == [
+        (NAME, "omar hassan"),
+        (PHONE, "050 123 4567"),
+    ]
+
+
 def test_sentence_initial_noun_is_not_a_name() -> None:
     assert detect("Salary certificate please, addressed to my bank for a loan.") == []
 
