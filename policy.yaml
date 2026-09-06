@@ -1,0 +1,18 @@
+# Destination policy: what may go where. Anything not declared here is refused.
+# Offline mode uses an implicit destination (local / local / approved) and never reads this file.
+
+default_destination: openrouter
+
+destinations:
+  - name: openrouter
+    provider: OpenRouter
+    region: US
+    approved: true
+    model: openai/gpt-4o-mini
+
+  # Declared but not approved, so the refusal path can be demonstrated from the UI.
+  - name: example-unapproved
+    provider: ExampleCloud
+    region: EU
+    approved: false
+    model: example/model
