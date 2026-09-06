@@ -16,7 +16,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
 
 from sitr.boundary import process
-from sitr.config import ConfigError, load_config, load_policy
+from sitr.config import DESTINATION_NAME, ConfigError, load_config, load_policy
 from sitr.model import API_KEY_ENV, ai_available
 from sitr.policy import view
 
@@ -27,8 +27,8 @@ app = FastAPI(title="sitr", redoc_url=None)
 class ProcessRequest(BaseModel):
     text: str
     mode: Literal["offline", "ai"] = "offline"
-    # An identifier, not free text: bounded so a hostile value cannot ride along as a "name".
-    destination: str | None = Field(None, max_length=64, pattern=r"^[A-Za-z0-9._-]+$")
+    # An identifier, not free text: the same shape policy.yaml enforces on declared names.
+    destination: str | None = Field(None, pattern=DESTINATION_NAME.pattern)
 
 
 @app.exception_handler(ConfigError)

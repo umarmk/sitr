@@ -35,6 +35,17 @@ def test_policy_rejects_quoted_booleans(tmp_path: Path) -> None:
         load_policy(bad)
 
 
+@pytest.mark.parametrize("name", ["openrouter/free", "x" * 65, "with space"])
+def test_policy_rejects_names_the_api_could_not_select(tmp_path: Path, name: str) -> None:
+    bad = tmp_path / "policy.yaml"
+    bad.write_text(
+        f"default_destination: '{name}'\n"
+        f"destinations:\n  - {{name: '{name}', provider: p, region: r, approved: true, model: m}}\n"
+    )
+    with pytest.raises(ConfigError, match="destination name"):
+        load_policy(bad)
+
+
 def test_policy_default_must_be_declared(tmp_path: Path) -> None:
     bad = tmp_path / "policy.yaml"
     bad.write_text(
@@ -61,6 +72,7 @@ def _mutated_config(tmp_path: Path, mutate: Callable[[dict], object]) -> Path:
         lambda d: d["request_types"]["leave"].__setitem__("keywords", "leave"),
         lambda d: d["drafts"].pop("sign_off"),
         lambda d: d["drafts"].__setitem__("body_missing", "please send {stuff}"),
+        lambda d: d["drafts"].__setitem__("body_complete", "Done: {items}"),
         lambda d: d.__setitem__("request_types", {}),
         lambda d: d["manipulation_patterns"].append("("),
     ],
@@ -70,6 +82,7 @@ def _mutated_config(tmp_path: Path, mutate: Callable[[dict], object]) -> Path:
         "keywords-is-a-string",
         "draft-missing",
         "draft-unknown-field",
+        "draft-field-from-other-call-site",
         "no-request-types",
         "bad-regex",
     ],
