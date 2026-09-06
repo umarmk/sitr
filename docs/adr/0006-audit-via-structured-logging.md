@@ -7,7 +7,7 @@ containing the data. "No personal data in logs" must be tested, not promised.
 
 **Decision.** `sitr/audit.py` builds a record (`request_id`, `timestamp`, `mode`,
 `destination{provider,region,approved}`, `categories{NAME:n,…}`, `request_type`,
-`decision`, `refusal_reason`) and emits it as one JSON line via the standard `logging`
+`decision`, `refusal_reason`, `needs_review`) and emits it as one JSON line via the standard `logging`
 module. The same record is embedded in the returned result. Message text and the
 placeholder mapping are never fields.
 

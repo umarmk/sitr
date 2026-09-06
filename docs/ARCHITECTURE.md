@@ -107,7 +107,7 @@ unavailable and the UI says so. Never echoed anywhere.
 | stdlib `urllib` for OpenRouter | One POST does not justify a client library; trivially faked in tests. |
 | `pyyaml` | Human-editable policy and config with comments. |
 | `logging` for audit | Standard sink; the no-PII test captures it directly. |
-| `pytest`, `ruff`, `httpx` (test client only), GitHub Actions (3.12, 3.14) | Team-standard hygiene. |
+| `pytest`, `ruff`, `httpx2` (test client only), GitHub Actions (3.12, 3.14) | Team-standard hygiene. |
 
 ## Trust boundaries and threats
 
