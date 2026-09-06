@@ -1,8 +1,8 @@
 # sitr
 
 **sitr keeps people's personal data out of AI models.** It sits between a message and the
-model: personal data is taken out before the model sees the text, and put back only for
-the person who reads the reply.
+model: personal data is taken out before the model sees the text. Names, phones and emails
+are put back only for the person who reads the reply; Emirates ID numbers never are.
 
 *sitr* (ستر) is Arabic for "to veil, to shield".
 
@@ -87,7 +87,7 @@ flowchart LR
 
 | Never leaves the boundary | Leaves only in AI mode | In the audit record |
 |---|---|---|
-| Raw text, the placeholder mapping, Emirates ID values | The masked text, to the one approved destination in `policy.yaml` | Counts per category, destination (provider, region, approved), request type, decision, reason |
+| Raw text, the placeholder mapping, Emirates ID values | Of the message, only the masked text, to the one approved destination in `policy.yaml` (with the ordinary request metadata: key, prompt, model ID, temperature) | Counts per category, destination (provider, region, approved), request type, decision, reason |
 
 ## Quick start
 
@@ -188,7 +188,9 @@ Nothing was sent; the audit record says so.
 
 ## Configuration
 
-Nothing behavioural is hardcoded. Two YAML files at the project root:
+Everything an operator should tune lives in two YAML files at the project root. The
+detectors, placeholder format and validation rules are deliberately code: they are the
+security control.
 
 - **`policy.yaml`** — what may go where. Each destination has a name, provider, region,
   `approved: true|false` (a real boolean; a quoted string is rejected at load), and the

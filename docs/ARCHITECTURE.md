@@ -26,7 +26,9 @@ flowchart TD
 ```
 
 **Never leaves the boundary:** raw text, the placeholder mapping, Emirates ID values.
-**Leaves only in `ai` mode:** the masked text, to the one approved destination in `policy.yaml`.
+**Leaves only in `ai` mode:** of the message, the masked text only, to the one approved
+destination in `policy.yaml`, alongside the ordinary request metadata (key, system prompt,
+model ID, temperature, attribution headers).
 
 ## Modules
 
@@ -46,8 +48,9 @@ flowchart TD
 
 ## Configuration
 
-Nothing behavioural is hardcoded. Two YAML files at the project root, loaded with
-`yaml.safe_load`:
+Everything an operator should tune lives in two YAML files at the project root, loaded
+with `yaml.safe_load`. Detectors, placeholder format, refusal reasons and output validation
+are code on purpose: they are the security control.
 
 ```yaml
 # policy.yaml — what may go where. A security control.
