@@ -11,6 +11,7 @@ frontend build, no framework. Server binds `127.0.0.1` by default. A CLI (`sitr 
 usable and testable without a browser. Secrets never reach the browser: no key field,
 `/api/capabilities` returns booleans only.
 
-**Consequences.** Two well-known dependencies buy pydantic validation of the size cap and
-mode enum, plus `/docs`. Rejected: stdlib `http.server` (hand-rolled validation),
+**Consequences.** Two well-known dependencies buy pydantic validation of request shape and
+the mode enum, plus `/docs`. The size cap is enforced by the boundary, not by request
+validation, so oversized input is refused with an audit record rather than a 422. Rejected: stdlib `http.server` (hand-rolled validation),
 Streamlit/Gradio (heavy install, notebook look).
