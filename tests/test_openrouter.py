@@ -39,6 +39,7 @@ class FakeOpenRouter:
     def __init__(self) -> None:
         self.requests: list[dict] = []
         self.reply: tuple[int, object] = (200, self.envelope(GOOD_ANSWER))
+        self.truncate = False  # declare more bytes than are sent, then close
 
         fake = self
 
@@ -49,10 +50,12 @@ class FakeOpenRouter:
                     {"path": self.path, "headers": dict(self.headers), "body": json.loads(raw)}
                 )
                 status, payload = fake.reply
+                data = json.dumps(payload).encode()
                 self.send_response(status)
                 self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(data) + (64 if fake.truncate else 0)))
                 self.end_headers()
-                self.wfile.write(json.dumps(payload).encode())
+                self.wfile.write(data)
 
             def log_message(self, *_: object) -> None:  # keep pytest output quiet
                 pass
@@ -133,6 +136,12 @@ def test_http_error_is_model_unavailable(fake: FakeOpenRouter) -> None:
         "model_unavailable",
         "model request failed with HTTP 500",
     )
+
+
+def test_truncated_response_is_model_unavailable(fake: FakeOpenRouter) -> None:
+    fake.truncate = True
+    r = process(REQUEST, mode="ai", model=make_model(fake))
+    assert (r.reason, r.reason_detail) == ("model_unavailable", "model request failed")
 
 
 def test_connection_refused_is_model_unavailable(fake: FakeOpenRouter) -> None:

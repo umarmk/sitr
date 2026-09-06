@@ -7,6 +7,7 @@ OpenAI-compatible gateway over stdlib urllib, key from the environment. Whatever
 
 from __future__ import annotations
 
+import http.client
 import json
 import os
 import urllib.error
@@ -102,7 +103,7 @@ class OpenRouterModel:
                 body = json.load(resp)
         except urllib.error.HTTPError as e:
             raise ModelError(f"model request failed with HTTP {e.code}") from e
-        except OSError as e:  # URLError, timeouts, refused connections
+        except (OSError, http.client.HTTPException) as e:  # unreachable, timeout, truncated
             raise ModelError("model request failed") from e
         except ValueError as e:
             raise ModelError("model response was not JSON") from e
