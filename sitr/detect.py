@@ -43,6 +43,11 @@ def _nlp():
     return spacy.load("en_core_web_sm", disable=["parser", "lemmatizer"])
 
 
+def warm() -> None:
+    """Load the name model now rather than on the first request; `sitr serve` calls this."""
+    _nlp()
+
+
 def detect(text: str) -> list[Span]:
     """All personal-data spans in `text`, sorted by position, non-overlapping."""
     found = [

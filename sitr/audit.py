@@ -21,6 +21,7 @@ def record(
     request_type: str | None,
     decision: str,
     refusal_reason: str | None,
+    needs_review: bool,
 ) -> dict:
     rec = {
         "request_id": uuid.uuid4().hex,
@@ -31,6 +32,7 @@ def record(
         "request_type": request_type,
         "decision": decision,
         "refusal_reason": refusal_reason,
+        "needs_review": needs_review,
     }
     log.info(json.dumps(rec, separators=(",", ":")))
     return rec

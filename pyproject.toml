@@ -3,6 +3,7 @@ name = "sitr"
 version = "0.1.0"
 description = "A privacy boundary between people's messages and AI models."
 readme = "README.md"
+authors = [{ name = "Umar M" }]
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115",
@@ -12,6 +13,9 @@ dependencies = [
     # Name-detection model shipped as an ordinary pinned dependency: no download step, no account.
     "en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl",
 ]
+
+[project.urls]
+Repository = "https://github.com/umarmk/sitr"
 
 [project.scripts]
 sitr = "sitr.cli:main"

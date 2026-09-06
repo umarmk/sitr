@@ -58,7 +58,7 @@ boundary doing real work; the boundary is the product.
 | NFR-4 | Honest refusal: empty, oversized (> 4,000 chars), non-English, unrecognisable or suspicious input is handed to a person with a stated reason. sitr never crashes and never guesses. |
 | NFR-5 | Web UI binds to `127.0.0.1` by default. Same-origin only. The placeholder mapping never leaves the server process. |
 | NFR-6 | Handover: another engineer can run, test and maintain it from the README alone. Tests and CI are part of the product. |
-| NFR-7 | Offline request completes in under one second on a laptop after the name model is loaded once at startup. |
+| NFR-7 | Offline request completes in under one second on a laptop after the name model is loaded once (at `serve` startup; on first use for `run`). |
 | NFR-8 | Nothing in the code, UI or docs claims regulatory compliance. |
 | NFR-9 | All sample data is synthetic. |
 
@@ -94,7 +94,9 @@ Never cut: offline flow, T-2, T-3, honest refusal, README.
 ## 7. Known limitations
 
 - Name detection uses a small statistical model (`en_core_web_sm`). It misses lowercase
-  or uncommon names and can flag non-names. Precision is stated, not measured.
+  or uncommon names and can flag non-names; recall is uneven on compound names. When one
+  name in a message is missed and another caught, the draft greets the wrong person.
+  Precision is stated, not measured.
 - Phone detection covers UAE mobile spellings (`+971 5x`, `00971 5x`, `971 5x`, `+971 (0)5x`,
   `05x`); landlines and foreign numbers are not detected.
 - Emirates ID detection is format-based (`784-YYYY-NNNNNNN-N`, separators optional); no

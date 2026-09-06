@@ -106,7 +106,7 @@ Without uv, on an existing Python 3.12+:
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
-pip install -e . pytest ruff httpx2
+pip install -e . pytest ruff httpx2   # editable: policy.yaml and config.yaml are read from the checkout
 pytest -q
 sitr serve
 ```
@@ -116,7 +116,7 @@ sitr serve
 <!-- example:start -->
 ```
 $ uv run sitr run --template salary-certificate
-sitr.audit {"request_id":"…","timestamp":"…","mode":"offline","destination":{"name":"offline","provider":"local","region":"local","approved":true},"categories":{"NAME":1,"EID":1,"PHONE":1,"EMAIL":1},"request_type":"salary_certificate","decision":"drafted","refusal_reason":null}
+sitr.audit {"request_id":"…","timestamp":"…","mode":"offline","destination":{"name":"offline","provider":"local","region":"local","approved":true},"categories":{"NAME":1,"EID":1,"PHONE":1,"EMAIL":1},"request_type":"salary_certificate","decision":"drafted","refusal_reason":null,"needs_review":false}
 decision      drafted
 request type  salary_certificate
 missing       -
@@ -265,7 +265,9 @@ docs/            SPEC.md, ARCHITECTURE.md, adr/
 Stated, not hidden:
 
 - Name detection is a small statistical model (`en_core_web_sm`). It misses lowercase or
-  uncommon names and can flag non-names. Precision is not measured.
+  uncommon names and can flag non-names; recall is uneven on compound names. When one name
+  in a message is missed and another caught, the draft greets the wrong person. Precision
+  is not measured.
 - Phone detection covers UAE mobile formats; landlines and foreign numbers are not detected.
 - Emirates ID detection is format-based, with no checksum.
 - The manipulation check is a keyword heuristic, not a classifier.

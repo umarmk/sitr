@@ -167,6 +167,7 @@ def process(
         request_type=request_type,
         decision=decision,
         refusal_reason=reason,
+        needs_review=needs_review,
     )
     return Result(
         decision=decision,

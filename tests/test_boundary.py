@@ -138,8 +138,15 @@ def test_unknown_placeholder_stays_literal_and_flags_review() -> None:
     r = process(
         REQUEST, mode="ai", model=Stub(ModelOutput("leave", [], "Dear [NAME_1], cc [EMAIL_7]"))
     )
-    assert (r.decision, r.needs_review) == ("drafted", True)
+    assert (r.decision, r.needs_review, r.audit["needs_review"]) == ("drafted", True, True)
     assert r.draft_reply == f"Dear {NAME}, cc [EMAIL_7]"
+
+
+def test_name_next_to_a_number_is_caught_on_the_second_pass() -> None:
+    """With the pinned model, spaCy misses this name until the number beside it is masked."""
+    r = process("Dear HR this is Ravi Kumar 0509876543 i need sick leave tomorrow")
+    assert (r.decision, r.request_type, r.counts) == ("drafted", "leave", {"NAME": 1, "PHONE": 1})
+    assert "Ravi Kumar" not in r.outgoing_text and r.draft_reply.startswith("Dear Ravi Kumar")
 
 
 def test_invalid_mode_is_a_programming_error() -> None:

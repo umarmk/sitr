@@ -7,6 +7,8 @@ oversized input is refused with an audit record instead of a 422.
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from dataclasses import asdict
 from pathlib import Path
 from typing import Literal
@@ -17,11 +19,20 @@ from pydantic import BaseModel, Field
 
 from sitr.boundary import process
 from sitr.config import DESTINATION_NAME, ConfigError, load_config, load_policy
+from sitr.detect import warm
 from sitr.model import API_KEY_ENV, ai_available
 from sitr.policy import view
 
 STATIC = Path(__file__).parent / "static"
-app = FastAPI(title="sitr", redoc_url=None)
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    warm()  # ~1 s once at startup instead of on the first click
+    yield
+
+
+app = FastAPI(title="sitr", redoc_url=None, lifespan=lifespan)
 
 
 class ProcessRequest(BaseModel):

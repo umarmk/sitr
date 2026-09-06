@@ -10,7 +10,6 @@ dist/
 graphify-out/
 .graphifyignore
 
-.env
 .claude/
 CLAUDE.md
 AGENTS.md

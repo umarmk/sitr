@@ -178,3 +178,26 @@ def test_response_without_choices_is_model_unavailable(fake: FakeOpenRouter) -> 
 def test_unapproved_destination_never_reaches_the_model(fake: FakeOpenRouter) -> None:
     r = process(REQUEST, mode="ai", destination="example-unapproved", model=make_model(fake))
     assert r.reason == "destination_not_approved" and fake.requests == []
+
+
+@pytest.mark.parametrize(
+    "content",
+    [
+        '{"request_type": "leave"}',
+        '```json\n{"request_type": "leave"}\n```',
+        '```\n{"request_type": "leave"}\n```',
+    ],
+    ids=["plain", "fenced-json", "fenced-bare"],
+)
+def test_parse_accepts_plain_and_fenced_json_objects(content: str) -> None:
+    assert model_mod._parse(content).request_type == "leave"
+
+
+@pytest.mark.parametrize(
+    "content",
+    [None, 42, "not json", '["a", "b"]', '"just a string"', "```json\n```"],
+    ids=["none", "number", "prose", "array", "string", "empty-fence"],
+)
+def test_parse_rejects_anything_that_is_not_a_json_object(content: object) -> None:
+    with pytest.raises(model_mod.InvalidModelOutput):
+        model_mod._parse(content)
