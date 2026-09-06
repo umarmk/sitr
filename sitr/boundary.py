@@ -51,6 +51,10 @@ class Result:
 def _validate(text: str, config: Config) -> None:
     if not text.strip():
         raise Refusal("empty", "the message is empty")
+    try:
+        text.encode("utf-8")
+    except UnicodeEncodeError:  # a lone surrogate (reachable as a JSON escape); spaCy would crash
+        raise Refusal("non_english", "the message is not valid text") from None
     if len(text) > config.input_max_chars:
         raise Refusal("too_long", f"the message exceeds {config.input_max_chars} characters")
     letters = [c for c in text if c.isalpha()]

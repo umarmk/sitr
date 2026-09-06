@@ -3,6 +3,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
+from sitr.config import ConfigError
 from sitr.web import app
 
 client = TestClient(app)
@@ -53,6 +54,22 @@ def test_oversized_input_is_refused_not_rejected() -> None:
 
 def test_bad_mode_is_a_validation_error() -> None:
     assert client.post("/api/process", json={"text": "x", "mode": "turbo"}).status_code == 422
+
+
+@pytest.mark.parametrize("dest", ["x" * 65, f"{EID} sarah", "a b"])
+def test_destination_is_an_identifier_not_free_text(dest: str) -> None:
+    body = {"text": REQUEST, "mode": "ai", "destination": dest}
+    assert client.post("/api/process", json=body).status_code == 422
+
+
+def test_broken_config_is_an_honest_503(monkeypatch: pytest.MonkeyPatch) -> None:
+    def broken(*_: object, **__: object) -> None:
+        raise ConfigError("config.yaml: malformed config (KeyError('label'))")
+
+    monkeypatch.setattr("sitr.boundary.load_config", broken)
+    monkeypatch.setattr("sitr.web.load_config", broken)
+    for r in (client.post("/api/process", json={"text": REQUEST}), client.get("/api/capabilities")):
+        assert r.status_code == 503 and "config.yaml" in r.json()["detail"]
 
 
 def test_ai_mode_without_key_is_refused_with_reason(monkeypatch: pytest.MonkeyPatch) -> None:

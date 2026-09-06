@@ -208,7 +208,7 @@ Each refusal is handed to a person with the reason stated, and still produces an
 | Reason | Trigger |
 |---|---|
 | `empty`, `too_long` | Blank input, or more than the configured cap (4,000 characters) |
-| `non_english` | Arabic script, or mostly non-ASCII letters |
+| `non_english` | Arabic script, mostly non-ASCII letters, or text that is not valid Unicode |
 | `suspected_manipulation` | Instruction-like phrases ("ignore previous instructions"), or literal placeholder tokens in the input |
 | `unrecognised_request` | No known request type matched |
 | `destination_not_approved` | AI mode with a destination that is undeclared or `approved: false` |

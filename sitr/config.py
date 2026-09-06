@@ -70,7 +70,16 @@ class Config:
     drafts: dict[str, str]
 
 
-def _rx(patterns: list[str]) -> list[re.Pattern[str]]:
+# Every sentence the rule-based assistant writes; validated at load so a typo in config.yaml
+# fails at startup, not in the middle of a request.
+DRAFT_KEYS = ("greeting_named", "greeting_anonymous", "body_complete", "body_missing", "sign_off")
+# Anything a malformed YAML value can raise while being turned into a dataclass.
+_MALFORMED = (KeyError, TypeError, ValueError, AttributeError, IndexError, re.error)
+
+
+def _rx(patterns: object) -> list[re.Pattern[str]]:
+    if not isinstance(patterns, list):  # a bare string would compile per character
+        raise TypeError(f"expected a list of patterns, got {type(patterns).__name__}")
     return [re.compile(p, re.IGNORECASE) for p in patterns]
 
 
@@ -78,8 +87,8 @@ def _load_yaml(path: Path) -> dict:
     try:
         with open(path, encoding="utf-8") as f:
             data = yaml.safe_load(f)
-    except FileNotFoundError as e:
-        raise ConfigError(f"{path}: not found") from e
+    except (OSError, yaml.YAMLError) as e:
+        raise ConfigError(f"{path}: {e}") from e
     if not isinstance(data, dict):
         raise ConfigError(f"{path}: expected a mapping at the top level")
     return data
@@ -102,7 +111,9 @@ def load_policy(path: Path = DEFAULT_POLICY) -> Policy:
         if data["default_destination"] not in destinations:
             raise ConfigError(f"{path}: default_destination is not a declared destination")
         return Policy(destinations, data["default_destination"])
-    except (KeyError, TypeError) as e:
+    except ConfigError:
+        raise
+    except _MALFORMED as e:
         raise ConfigError(f"{path}: malformed policy ({e!r})") from e
 
 
@@ -120,6 +131,11 @@ def load_config(path: Path = DEFAULT_CONFIG) -> Config:
             )
             for key, rt in data["request_types"].items()
         }
+        if not request_types:
+            raise ConfigError(f"{path}: request_types must declare at least one type")
+        drafts = {k: data["drafts"][k] for k in DRAFT_KEYS}
+        for sentence in drafts.values():
+            sentence.format(label="", items="")  # an unknown {field} fails here, not mid-request
         return Config(
             input_max_chars=int(data["input_max_chars"]),
             model=ModelConfig(
@@ -128,7 +144,9 @@ def load_config(path: Path = DEFAULT_CONFIG) -> Config:
             request_types=request_types,
             templates=[Template(t["id"], t["title"], t["text"]) for t in data["templates"]],
             manipulation_patterns=_rx(data["manipulation_patterns"]),
-            drafts=dict(data["drafts"]),
+            drafts=drafts,
         )
-    except (KeyError, TypeError, re.error) as e:
+    except ConfigError:
+        raise
+    except _MALFORMED as e:
         raise ConfigError(f"{path}: malformed config ({e!r})") from e

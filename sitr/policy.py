@@ -1,7 +1,8 @@
 """Destination policy: configuration decides where masked text may go.
 
 Undeclared or unapproved destinations are refused. Offline mode has an implicit local
-destination that is always approved.
+destination that is always approved. A destination name is caller input: an undeclared
+one is never echoed into a refusal detail or the audit record.
 """
 
 from __future__ import annotations
@@ -12,30 +13,25 @@ from sitr.refusal import Refusal
 OFFLINE = Destination(
     name="offline", provider="local", region="local", approved=True, model="rule-based"
 )
+UNDECLARED = {"name": "undeclared", "provider": None, "region": None, "approved": False}
 
 
 def resolve(policy: Policy, name: str | None) -> Destination:
-    name = name or policy.default_destination
-    dest = policy.destinations.get(name)
+    dest = policy.destinations.get(name or policy.default_destination)
     if dest is None:
-        raise Refusal(
-            "destination_not_approved", f"destination '{name}' is not declared in policy.yaml"
-        )
+        raise Refusal("destination_not_approved", "the destination is not declared in policy.yaml")
     if not dest.approved:
         raise Refusal(
             "destination_not_approved",
-            f"destination '{name}' ({dest.provider}, {dest.region}) is not approved",
+            f"destination '{dest.name}' ({dest.provider}, {dest.region}) is not approved",
         )
     return dest
 
 
 def describe(policy: Policy, name: str | None) -> dict:
-    """Audit-safe view of a destination, including ones that are not declared."""
-    name = name or policy.default_destination
-    dest = policy.destinations.get(name)
-    if dest is None:
-        return {"name": name, "provider": None, "region": None, "approved": False}
-    return view(dest)
+    """Audit-safe view of a destination; anything not in the policy is just 'undeclared'."""
+    dest = policy.destinations.get(name or policy.default_destination)
+    return view(dest) if dest else dict(UNDECLARED)
 
 
 def view(dest: Destination) -> dict:

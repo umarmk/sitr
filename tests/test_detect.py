@@ -16,10 +16,28 @@ def test_emirates_id_formats(eid: str) -> None:
 
 @pytest.mark.parametrize(
     "phone",
-    ["050 123 4567", "0501234567", "+971 50 123 4567", "+971501234567", "00971 55 987 6543"],
+    [
+        "050 123 4567",
+        "0501234567",
+        "+971 50 123 4567",
+        "+971501234567",
+        "00971 55 987 6543",
+        "+971 (0)50 123 4567",
+        "+971(0)501234567",
+        "971 50 123 4567",
+    ],
 )
 def test_uae_mobile_formats(phone: str) -> None:
     assert (PHONE, phone) in found(f"Call me on {phone} please")
+
+
+def test_sentence_initial_noun_is_not_a_name() -> None:
+    assert detect("Salary certificate please, addressed to my bank for a loan.") == []
+
+
+def test_longest_span_wins_when_categories_overlap() -> None:
+    """A phone number inside an email must not leave a half-masked address behind."""
+    assert found("Write to john0501234567@example.com") == [(EMAIL, "john0501234567@example.com")]
 
 
 def test_email() -> None:

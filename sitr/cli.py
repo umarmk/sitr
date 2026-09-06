@@ -1,7 +1,7 @@
 """Command line: `sitr run`, `sitr templates`, `sitr serve`. A thin wrapper over process().
 
-Exit codes for `run`: 0 drafted, 1 handed to a person, 2 usage error. Audit lines go to
-stderr so `--json` output on stdout stays machine-readable.
+Exit codes for `run`: 0 drafted, 1 handed to a person, 2 usage or configuration error.
+Audit lines go to stderr so `--json` output on stdout stays machine-readable.
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ import sys
 from dataclasses import asdict
 
 from sitr.boundary import MODES, Result, process
-from sitr.config import load_config
+from sitr.config import ConfigError, load_config
 
 
 def _cmd_templates(_: argparse.Namespace) -> int:
@@ -32,7 +32,8 @@ def _cmd_run(args: argparse.Namespace) -> int:
     elif args.text is not None:
         text = args.text
     else:
-        text = sys.stdin.read()
+        # Bytes, not text: a stray invalid byte becomes U+FFFD instead of a traceback.
+        text = sys.stdin.buffer.read().decode("utf-8", "replace")
     result = process(text, mode=args.mode, destination=args.destination)
     if args.json:
         print(json.dumps(asdict(result), indent=2))
@@ -95,7 +96,11 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     logging.basicConfig(level=logging.INFO, format="%(name)s %(message)s")  # audit -> stderr
     args = build_parser().parse_args(argv)
-    return args.func(args)
+    try:
+        return args.func(args)
+    except ConfigError as e:
+        print(f"configuration error: {e}", file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":

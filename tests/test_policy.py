@@ -27,8 +27,13 @@ def test_unapproved_or_undeclared_is_refused(name: str) -> None:
     assert e.value.reason == "destination_not_approved"
 
 
-def test_describe_is_audit_safe_for_any_name() -> None:
-    assert describe(POLICY, "undeclared") == {
+def test_undeclared_name_is_never_echoed() -> None:
+    """The name is caller input; a hostile one must not reach the detail or the audit view."""
+    hostile = "784-1990-1234567-1 sarah.mitchell@example.com"
+    with pytest.raises(Refusal) as e:
+        resolve(POLICY, hostile)
+    assert hostile not in e.value.detail
+    assert describe(POLICY, hostile) == {
         "name": "undeclared",
         "provider": None,
         "region": None,
